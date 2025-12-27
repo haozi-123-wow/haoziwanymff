@@ -1,0 +1,135 @@
+# 依赖目录
+node_modules/
+pnpm-lock.yaml
+
+# 环境变量文件
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# 构建输出
+dist/
+build/
+coverage/
+.nyc_output/
+
+# 日志文件
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# 运行时数据
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# 系统文件
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+.directory
+.Trashes
+*.nfs
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vs/
+.atom/
+
+# 操作系统
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+VolumeIcon.icns
+
+# 编辑器
+*.bak
+*.tmp
+*~
+
+# 数据库
+*.db
+*.db-journal
+
+# 系统临时文件
+*.tmp
+*.temp
+*~
+.DS_Store
+.DS_Store?
+._*
+
+# 本地配置
+config.local.js
+config.local.json
+local.properties
+
+# 上传的文件
+uploads/
+files/
+storage/
+
+# 系统缓存
+.cache/
+.nuxt/
+.next/
+.vuepress/dist/
+static/nuxt/
+
+# 测试相关
+coverage/
+.nyc_output/
+junit.xml
+
+# PM2
+pm2.log
+pm2.pid
+
+# 证书和密钥
+*.crt
+*.key
+*.pem
+certs/
+keys/
+
+# 其他敏感文件
+secret/
+private/
+*.secret
+*.env.backup
+.env.backup
+.env.save
+.env.backup.*
+.env.save.*
+
+# MySQL相关
+mysql.log
+mysql.err
+
+# Redis相关
+dump.rdb
+*.rdb
+
+# 临时文件
+tmp/
+temp/
+
+# 本地开发配置
+config/
+*.config.js
+*.local.js
+*.test.js
