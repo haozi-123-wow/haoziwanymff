@@ -33,13 +33,16 @@ const User = sequelize.define('User', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    field: 'is_active', // 映射到数据库中的 is_active 字段
     defaultValue: false
   },
   activationToken: {
-    type: DataTypes.STRING
+    type: DataTypes.STRING,
+    field: 'activation_token' // 映射到数据库中的 activation_token 字段
   },
   activationTokenExpires: {
-    type: DataTypes.DATE
+    type: DataTypes.DATE,
+    field: 'activation_token_expires' // 映射到数据库中的 activation_token_expires 字段
   },
   role: {
     type: DataTypes.STRING,
@@ -51,6 +54,7 @@ const User = sequelize.define('User', {
 }, {
   tableName: 'users',
   timestamps: true, // 自动添加 createdAt 和 updatedAt
+  underscored: true, // 这将自动将模型属性转换为下划线格式
   hooks: {
     beforeCreate: async (user) => {
       if (user.password) {
@@ -60,8 +64,7 @@ const User = sequelize.define('User', {
     },
     beforeUpdate: async (user) => {
       if (user.changed('password')) {
-        const salt = await bcrypt.genSalt(12);
-        user.password = await bcrypt.hash(user.password, salt);
+        const salt = await bcrypt.hash(user.password, salt);
       }
     }
   }

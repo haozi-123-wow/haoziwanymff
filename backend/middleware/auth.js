@@ -6,7 +6,16 @@ const { User } = require('../models');
  */
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  const rawHeader = typeof authHeader === 'string' ? authHeader.trim() : '';
+  let token = '';
+
+  if (rawHeader) {
+    if (rawHeader.toLowerCase().startsWith('bearer ')) {
+      token = rawHeader.substring(7).trim();
+    } else {
+      token = rawHeader;
+    }
+  }
 
   if (!token) {
     return res.status(401).json({

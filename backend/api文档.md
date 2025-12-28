@@ -60,7 +60,10 @@ api文档.md
 为防止恶意注册和登录，系统集成了极验人机验证（Geetest），确保操作由真实用户完成。
 
 ### 2.1 获取验证配置参数
+**开发状态**: ✅ 已完成（`captchaController.getCaptchaConfig`）
+
 用于前端初始化极验验证组件，获取验证所需的配置信息。
+
 
 *   **接口地址**: `GET /api/v1/captcha/config`
 *   **是否需要认证**: 否
@@ -82,7 +85,10 @@ api文档.md
 ---
 
 ### 2.2 极验二次验证
+**开发状态**: ✅ 已完成（`captchaController.validateCaptcha`）
+
 当用户在前端完成人机验证后，前端将验证参数发送到此接口，系统再将这些参数上传到极验二次校验接口，确认用户验证的有效性。
+
 
 *   **接口地址**: `POST /api/v1/captcha/validate`
 *   **是否需要认证**: 否
@@ -133,12 +139,46 @@ api文档.md
 
 ---
 
+### 2.3（开发环境）快速获取 validate_token
+**开发状态**: ✅ 已完成（`captchaController.issueDevValidateToken`）
+
+仅在本地或测试环境启用，帮助开发人员无需真实极验请求即可获得短期有效的 `validate_token`。
+
+> ⚠️ **安全提示**：当 `NODE_ENV=production` 且 `ALLOW_DEV_CAPTCHA` 未置为 `true` 时此接口自动禁用。
+
+*   **接口地址**: `POST /api/v1/captcha/dev/validate-token`
+*   **是否需要认证**: 否（若启用则默认非生产环境）
+*   **请求参数 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| expiresInMinutes | number | 否 | 令牌有效期（1-60，默认10分钟） |
+
+*   **响应示例**:
+```json
+{
+  "code": 0,
+  "message": "开发环境 validate_token 生成成功",
+  "data": {
+    "validate_token": "mock_token_for_dev_only",
+    "expiresInMinutes": 10
+  },
+  "timestamp": 1698765432000
+}
+```
+
+---
+
 ## 3. 用户认证模块
+
 
 这是系统的入口，提供用户注册、登录及获取当前用户信息的功能。
 
 ### 3.1 用户注册
+**开发状态**: ✅ 已完成（`authController.register`）
+
 用于创建新用户账号。系统需对密码进行加密处理（推荐使用 `bcrypt`）并发送激活邮件。新增了极验人机验证要求。
+
 
 *   **接口地址**: `POST /api/v1/auth/register`
 *   **是否需要认证**: 否
@@ -199,10 +239,17 @@ api文档.md
 ---
 
 ### 3.2 用户激活
+**开发状态**: ✅ 已完成（`authController.activateAccount`）
+
 用于激活新注册的用户账户。用户注册后，系统会发送包含激活令牌的邮件到用户邮箱，用户点击邮件中的链接完成激活。
 
-*   **接口地址**: `GET /api/v1/auth/activate/:token`
+
+*   **接口地址**: `GET /api/v1/auth/activate/{token}`
+    > ⚠️ 实际请求 URL 中不要包含冒号，直接用真实 token 替换 `{token}`。
+    > ✅ 也支持 `GET /api/v1/auth/activate?token=<token>` 的查询参数形式，便于复制粘贴。
 *   **是否需要认证**: 否
+
+
 *   **路径参数 (URL)**:
 
 | 参数名 | 类型 | 必填 | 描述 |
@@ -240,12 +287,21 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 
 ---
 
-### 3.3 用户登录
-验证用户凭据并签发 JWT Token。注意：只有已激活的账户才能登录。新增了极验人机验证要求。
+### 3.3 用户登录（已完成）
+用于验证用户身份并签发 JWT Token。此接口与极验验证、账号激活、速率限制等机制联动，是所有受保护接口的入口。
 
 *   **接口地址**: `POST /api/v1/auth/login`
 *   **是否需要认证**: 否
+*   **请求头 (Headers)**:
+    *   `Content-Type: application/json`
+    *   `User-Agent`: 推荐传入真实终端信息，便于风控审计
+    *   `X-Forwarded-For`（可选）: 由网关填写来源 IP，便于限流/风险分析
+*   **前置要求**:
+    1. 账号已通过激活流程，`isActive = true`
+    2. 已从 2.2 或 2.3 获取到有效的 `validate_token`
+    3. 受 Express Rate Limit 保护：同一 IP 15 分钟内最多 100 次
 *   **请求参数 (Body)**:
+
 
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
@@ -312,7 +368,7 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 
 ---
 
-### 3.4 获取当前用户信息
+### 3.4 获取当前用户信息（已完成）
 用于前端校验 Token 有效性并获取当前登录用户的基本资料。
 
 *   **接口地址**: `GET /api/v1/user/me`
@@ -351,10 +407,12 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 ---
 
 ### 3.5 用户登出
+**开发状态**: ✅ 已完成（`authController.logout` + 认证中间件）
+
 *注意：由于 JWT 是无状态的，服务端通常不需要做特殊处理。此接口主要用于客户端清除 Token。*
 
 *   **接口地址**: `POST /api/v1/auth/logout`
-*   **是否需要认证**: 是
+*   **是否需要认证**: 是（需携带有效 JWT）
 *   **请求头 (Headers)**:
     *   `Authorization: Bearer <token>`
 
@@ -370,8 +428,12 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 
 ---
 
+
 ### 3.6 发送邮箱验证码
+**开发状态**: ✅ 已完成（已在 `authController` 与 `routes/auth` 实现）
+
 用于注册校验、找回密码、修改邮箱等场景。为防止刷接口，建议服务端实施频率限制（如 1 分钟一次）。
+
 
 *   **接口地址**: `POST /api/v1/auth/email-code`
 *   **是否需要认证**: 否（修改邮箱场景除外）
@@ -398,7 +460,10 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 ---
 
 ### 3.7 找回密码 (邮箱验证)
+**开发状态**: ✅ 已完成（`authController.resetPassword`）
+
 用户忘记密码时，通过邮箱验证码重置密码。
+
 
 *   **接口地址**: `POST /api/v1/auth/reset-password`
 *   **是否需要认证**: 否
@@ -424,7 +489,10 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 ---
 
 ### 3.8 更改绑定邮箱
+**开发状态**: ✅ 已完成（`PATCH /user/email` 已上线）
+
 在用户已登录状态下，更换账号绑定的邮箱地址。
+
 
 *   **接口地址**: `PATCH /api/v1/user/email`
 *   **是否需要认证**: 是
@@ -455,9 +523,12 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 管理员可以管理网站设置、用户信息等系统配置。
 
 ### 4.1 获取网站设置
+**开发状态**: ✅ 已完成（`adminController.getSettings`）
+
 获取当前网站的全局配置信息。
 
 *   **接口地址**: `GET /api/v1/admin/settings`
+
 *   **是否需要认证**: 是（需要管理员权限）
 *   **请求头 (Headers)**:
     *   `Authorization: Bearer <token>`
@@ -502,9 +573,12 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 ---
 
 ### 4.2 更新网站设置
+**开发状态**: ✅ 已完成（`adminController.updateSettings`）
+
 更新网站的全局配置信息。
 
 *   **接口地址**: `PUT /api/v1/admin/settings`
+
 *   **是否需要认证**: 是（需要管理员权限）
 *   **请求头 (Headers)**:
     *   `Authorization: Bearer <token>`

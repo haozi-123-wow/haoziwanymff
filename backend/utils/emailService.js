@@ -13,7 +13,7 @@ const getEmailConfig = async () => {
       const config = JSON.parse(dbConfig.value);
       return {
         host: config.host,
-        port: config.port,
+        port: Number(config.port) || 587,
         secure: config.secure === 'true' || config.secure === true, // true for 465, false for other ports
         auth: {
           user: config.user,
@@ -25,7 +25,7 @@ const getEmailConfig = async () => {
       // 如果数据库配置解析失败，回退到环境变量
       return {
         host: process.env.EMAIL_HOST,
-        port: process.env.EMAIL_PORT,
+        port: Number(process.env.EMAIL_PORT) || 587,
         secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
         auth: {
           user: process.env.EMAIL_USER,
@@ -39,7 +39,7 @@ const getEmailConfig = async () => {
   // 使用环境变量
   return {
     host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
+    port: Number(process.env.EMAIL_PORT) || 587,
     secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
     auth: {
       user: process.env.EMAIL_USER,
@@ -54,7 +54,7 @@ const getEmailConfig = async () => {
  */
 const createTransporter = async () => {
   const config = await getEmailConfig();
-  return nodemailer.createTransporter(config);
+  return nodemailer.createTransport(config);
 };
 
 /**
@@ -140,6 +140,96 @@ const generateActivationEmail = (user, activationLink) => {
   `;
 };
 
+const sceneLabelMap = {
+  register: '注册',
+  reset_password: '重置密码',
+  update_email: '修改邮箱'
+};
+
+const generateVerificationCodeEmail = ({ sceneLabel, code }) => `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <title>${sceneLabel}验证码 - Haoziwanymff</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 520px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        padding: 32px;
+      }
+      .title {
+        color: #111827;
+        margin-bottom: 12px;
+        font-size: 22px;
+      }
+      .code {
+        font-size: 36px;
+        letter-spacing: 6px;
+        font-weight: bold;
+        color: #1d4ed8;
+        text-align: center;
+        margin: 24px 0;
+      }
+      .desc {
+        color: #4b5563;
+        line-height: 1.6;
+      }
+      .footer {
+        margin-top: 32px;
+        color: #9ca3af;
+        font-size: 13px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2 class="title">${sceneLabel}验证码</h2>
+      <p class="desc">您好，这是您进行${sceneLabel}操作所需的验证码，请在 10 分钟内完成验证：</p>
+      <div class="code">${code}</div>
+      <p class="desc">如果这不是您的操作，请忽略此邮件。验证码会在使用或过期后自动失效。</p>
+      <div class="footer">Haoziwanymff 团队</div>
+    </div>
+  </body>
+  </html>
+`;
+
+const sendVerificationCodeEmail = async ({ to, code, scene }) => {
+  const transporter = await createTransporter();
+  const config = await getEmailConfig();
+  const from = config.from || process.env.EMAIL_USER;
+  const sceneLabel = sceneLabelMap[scene] || '安全';
+
+  const mailOptions = {
+    from: `"Haoziwanymff" <${from}>`,
+    to,
+    subject: `Haoziwanymff${sceneLabel}验证码`,
+    html: generateVerificationCodeEmail({ sceneLabel, code })
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('验证码邮件发送成功:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('发送验证码邮件失败:', error);
+    throw new Error(`验证码发送失败: ${error.message}`);
+  }
+};
+
 /**
  * 发送激活邮件
  */
@@ -200,5 +290,6 @@ const sendTestEmail = async (to, subject = '测试邮件', content = '这是一�
 module.exports = {
   sendActivationEmail,
   sendTestEmail,
+  sendVerificationCodeEmail,
   getEmailConfig
 };

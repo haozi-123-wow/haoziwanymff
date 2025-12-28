@@ -3,21 +3,127 @@ const { sendTestEmail } = require('../utils/emailService');
 const { verifyValidateToken } = require('../utils/geetestService');
 const { Op } = require('sequelize');
 
+const DEFAULT_REGISTER_CONFIG = {
+  allowRegister: true,
+  needActivation: true,
+  needCaptcha: true
+};
+
+const DEFAULT_EMAIL_CONFIG = {
+  host: '',
+  port: 587,
+  secure: false,
+  from: ''
+};
+
+const DEFAULT_SMTP_CONFIG = {
+  host: '',
+  port: 587,
+  secure: false,
+  user: '',
+  pass: '',
+  from: ''
+};
+
+const DEFAULT_GEETEST_CONFIG = {
+  captchaId: '',
+  captchaKey: '',
+  needCaptcha: true
+};
+
+const DEFAULT_SETTINGS_MAP = {
+  siteTitle: '',
+  siteDescription: '',
+  siteLogo: '',
+  siteFavicon: '',
+  emailConfig: DEFAULT_EMAIL_CONFIG,
+  registerConfig: DEFAULT_REGISTER_CONFIG,
+  smtpConfig: DEFAULT_SMTP_CONFIG,
+  geetestConfig: DEFAULT_GEETEST_CONFIG
+};
+
+const isPlainObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+const cloneValue = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(cloneValue);
+  }
+  if (isPlainObject(value)) {
+    return Object.keys(value).reduce((acc, key) => {
+      acc[key] = cloneValue(value[key]);
+      return acc;
+    }, {});
+  }
+  return value;
+};
+
+const buildDefaultSettings = () =>
+  Object.keys(DEFAULT_SETTINGS_MAP).reduce((acc, key) => {
+    acc[key] = cloneValue(DEFAULT_SETTINGS_MAP[key]);
+    return acc;
+  }, {});
+
+const safeParseSettingValue = (rawValue, fallback) => {
+  if (rawValue === undefined || rawValue === null) {
+    return cloneValue(fallback);
+  }
+  if (typeof rawValue === 'object') {
+    return rawValue;
+  }
+  const normalized = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+  if (normalized === '' || normalized === undefined || normalized === null) {
+    return cloneValue(fallback);
+  }
+  try {
+    return JSON.parse(normalized);
+  } catch (error) {
+    return normalized;
+  }
+};
+
+const mergeObjectConfig = (value, fallback) => {
+  if (!isPlainObject(fallback)) {
+    return value === undefined ? fallback : value;
+  }
+  if (!isPlainObject(value)) {
+    return cloneValue(fallback);
+  }
+  return {
+    ...fallback,
+    ...value
+  };
+};
+
 /**
  * 获取网站设置
  */
 const getSettings = async (req, res) => {
   try {
-    // 获取所有设置项
     const settings = await Setting.findAll();
-    
-    // 将设置项转换为对象
-    const settingsObj = {};
-    settings.forEach(setting => {
-      try {
-        settingsObj[setting.key] = JSON.parse(setting.value);
-      } catch (e) {
-        settingsObj[setting.key] = setting.value;
+    const normalizedSettings = buildDefaultSettings();
+
+    let earliestCreatedAt = null;
+    let latestUpdatedAt = null;
+
+    settings.forEach((setting) => {
+      const { key, value, createdAt, updatedAt } = setting;
+      const hasDefault = Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS_MAP, key);
+      const fallback = hasDefault ? DEFAULT_SETTINGS_MAP[key] : undefined;
+      const parsedValue = safeParseSettingValue(value, fallback);
+
+      if (hasDefault && isPlainObject(fallback)) {
+        normalizedSettings[key] = mergeObjectConfig(parsedValue, fallback);
+      } else if (hasDefault) {
+        normalizedSettings[key] = parsedValue;
+      } else {
+        normalizedSettings[key] = parsedValue;
+      }
+
+      if (createdAt && (!earliestCreatedAt || createdAt < earliestCreatedAt)) {
+        earliestCreatedAt = createdAt;
+      }
+      if (updatedAt && (!latestUpdatedAt || updatedAt > latestUpdatedAt)) {
+        latestUpdatedAt = updatedAt;
       }
     });
 
@@ -25,9 +131,9 @@ const getSettings = async (req, res) => {
       code: 0,
       message: 'success',
       data: {
-        ...settingsObj,
-        createdAt: settings.length > 0 ? settings[0].createdAt : null,
-        updatedAt: settings.length > 0 ? settings[0].updatedAt : null
+        ...normalizedSettings,
+        createdAt: earliestCreatedAt,
+        updatedAt: latestUpdatedAt
       },
       timestamp: Date.now()
     });

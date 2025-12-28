@@ -13,11 +13,13 @@ const Captcha = sequelize.define('Captcha', {
     unique: true
   },
   userId: {
-    type: DataTypes.BIGINT
+    type: DataTypes.BIGINT,
+    field: 'user_id'
   },
   expiresAt: {
     type: DataTypes.DATE,
-    allowNull: false
+    allowNull: false,
+    field: 'expires_at'
   },
   used: {
     type: DataTypes.BOOLEAN,
@@ -29,7 +31,8 @@ const Captcha = sequelize.define('Captcha', {
   }
 }, {
   tableName: 'captchas',
-  timestamps: true
+  timestamps: true,
+  underscored: true
 });
 
 module.exports = Captcha;
