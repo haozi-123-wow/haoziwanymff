@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouterPush } from '@/hooks/common/router';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
@@ -38,7 +38,6 @@ const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
   };
 });
 
-const geetestContainer = ref<HTMLElement | null>(null);
 const captchaInstance = ref<any>(null);
 const validateToken = ref('');
 const isGeetestReady = ref(false);
@@ -57,17 +56,12 @@ async function initGeetest() {
           (window as any).initGeetest4(
             {
               captchaId: config.captchaId,
-              product: 'float'
+              product: 'bind'
             },
             (captcha: any) => {
               captchaInstance.value = captcha;
               captcha.onReady(() => {
                 isGeetestReady.value = true;
-                nextTick(() => {
-                  if (geetestContainer.value) {
-                    captcha.appendTo(geetestContainer.value);
-                  }
-                });
               });
               captcha.onSuccess(async () => {
                 const result = captcha.getValidate();
@@ -81,6 +75,7 @@ async function initGeetest() {
                   
                   if (!validateError && validateData) {
                     validateToken.value = validateData.validate_token;
+                    await performRegister();
                   }
                 }
               });
@@ -105,23 +100,27 @@ function loadGeetestScript(callback: () => void) {
   document.head.appendChild(script);
 }
 
-async function handleSubmit() {
-  await validate();
-  
-  if (!validateToken.value) {
-    window.$notification?.error({
-      title: '验证失败',
-      content: '请先完成人机验证',
-      duration: 3000
-    });
-    return;
-  }
-  
+async function performRegister() {
   const { error } = await fetchRegister(model.username, model.email, model.password, validateToken.value);
   
   if (!error) {
     window.$message?.success($t('page.login.common.validateSuccess'));
   }
+}
+
+async function handleSubmit() {
+  await validate();
+  
+  if (!isGeetestReady.value || !captchaInstance.value) {
+    window.$notification?.error({
+      title: '错误',
+      content: '人机验证未准备好，请稍后重试',
+      duration: 3000
+    });
+    return;
+  }
+  
+  captchaInstance.value.showCaptcha();
 }
 </script>
 
@@ -141,9 +140,6 @@ async function handleSubmit() {
         :placeholder="$t('page.login.common.passwordPlaceholder')"
       />
     </NFormItem>
-    <NFormItem>
-      <div ref="geetestContainer" id="geetest-captcha" class="geetest-container"></div>
-    </NFormItem>
     <NSpace vertical :size="18" class="w-full">
       <NButton type="primary" size="large" round block @click="handleSubmit">
         {{ $t('common.confirm') }}
@@ -154,10 +150,3 @@ async function handleSubmit() {
     </NSpace>
   </NForm>
 </template>
-
-<style scoped>
-.geetest-container {
-  width: 100%;
-  min-height: 44px;
-}
-</style>
