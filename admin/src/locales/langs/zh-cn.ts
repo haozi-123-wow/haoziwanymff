@@ -224,7 +224,9 @@ const local: App.I18n.Schema = {
     404: '页面不存在',
     500: '服务器错误',
     'iframe-page': '外链页面',
-    home: '首页'
+    home: '首页',
+    'system-settings': '系统设置',
+    'system-settings_basic': '基础设置'
   },
   page: {
     login: {
@@ -301,6 +303,11 @@ const local: App.I18n.Schema = {
         desc5: 'Soybean 刚才把工作台页面随便写了一些，凑合能看了！'
       },
       creativity: '创意'
+    },
+    'system-settings': {
+      basic: {
+        description: '系统基础设置页面，用于配置系统的基本参数和选项。'
+      }
     }
   },
   form: {
@@ -308,6 +315,10 @@ const local: App.I18n.Schema = {
     userName: {
       required: '请输入用户名',
       invalid: '用户名格式不正确'
+    },
+    username: {
+      required: '请输入用户名',
+      pattern: '用户名格式不正确'
     },
     phone: {
       required: '请输入手机号',

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { useRouterPush } from '@/hooks/common/router';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
-import { useCaptcha } from '@/hooks/business/captcha';
 import { $t } from '@/locales';
+import { fetchRegister } from '@/service/api/auth';
+import { fetchGetCaptchaConfig, fetchValidateCaptcha } from '@/service/api/captcha';
 
 defineOptions({
   name: 'Register'
@@ -11,52 +12,126 @@ defineOptions({
 
 const { toggleLoginModule } = useRouterPush();
 const { formRef, validate } = useNaiveForm();
-const { label, isCounting, loading, getCaptcha } = useCaptcha();
 
 interface FormModel {
-  phone: string;
-  code: string;
+  username: string;
+  email: string;
   password: string;
-  confirmPassword: string;
 }
 
 const model: FormModel = reactive({
-  phone: '',
-  code: '',
-  password: '',
-  confirmPassword: ''
+  username: '',
+  email: '',
+  password: ''
 });
 
 const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
-  const { formRules, createConfirmPwdRule } = useFormRules();
+  const { formRules } = useFormRules();
 
   return {
-    phone: formRules.phone,
-    code: formRules.code,
-    password: formRules.pwd,
-    confirmPassword: createConfirmPwdRule(model.password)
+    username: [
+      { required: true, message: $t('form.username.required'), trigger: 'blur' },
+      { pattern: /^[a-zA-Z0-9_]{3,20}$/, message: $t('form.username.pattern'), trigger: 'blur' }
+    ],
+    email: formRules.email,
+    password: formRules.pwd
   };
 });
 
+const geetestContainer = ref<HTMLElement | null>(null);
+const captchaInstance = ref<any>(null);
+const validateToken = ref('');
+const isGeetestReady = ref(false);
+
+onMounted(async () => {
+  await initGeetest();
+});
+
+async function initGeetest() {
+  try {
+    const { data: config, error } = await fetchGetCaptchaConfig();
+    
+    if (!error && config) {
+      loadGeetestScript(() => {
+        if ((window as any).initGeetest4) {
+          (window as any).initGeetest4(
+            {
+              captchaId: config.captchaId,
+              product: 'float'
+            },
+            (captcha: any) => {
+              captchaInstance.value = captcha;
+              captcha.onReady(() => {
+                isGeetestReady.value = true;
+                nextTick(() => {
+                  if (geetestContainer.value) {
+                    captcha.appendTo(geetestContainer.value);
+                  }
+                });
+              });
+              captcha.onSuccess(async () => {
+                const result = captcha.getValidate();
+                if (result) {
+                  const { data: validateData, error: validateError } = await fetchValidateCaptcha({
+                    lot_number: result.lot_number,
+                    captcha_output: result.captcha_output,
+                    pass_token: result.pass_token,
+                    gen_time: result.gen_time
+                  });
+                  
+                  if (!validateError && validateData) {
+                    validateToken.value = validateData.validate_token;
+                  }
+                }
+              });
+              captcha.onError((err: any) => {
+                console.error('Geetest error:', err);
+              });
+            }
+          );
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Failed to init Geetest:', error);
+  }
+}
+
+function loadGeetestScript(callback: () => void) {
+  const script = document.createElement('script');
+  script.src = 'https://static.geetest.com/v4/gt4.js';
+  script.async = true;
+  script.onload = callback;
+  document.head.appendChild(script);
+}
+
 async function handleSubmit() {
   await validate();
-  // request to register
-  window.$message?.success($t('page.login.common.validateSuccess'));
+  
+  if (!validateToken.value) {
+    window.$notification?.error({
+      title: '验证失败',
+      content: '请先完成人机验证',
+      duration: 3000
+    });
+    return;
+  }
+  
+  const { error } = await fetchRegister(model.username, model.email, model.password, validateToken.value);
+  
+  if (!error) {
+    window.$message?.success($t('page.login.common.validateSuccess'));
+  }
 }
 </script>
 
 <template>
   <NForm ref="formRef" :model="model" :rules="rules" size="large" :show-label="false" @keyup.enter="handleSubmit">
-    <NFormItem path="phone">
-      <NInput v-model:value="model.phone" :placeholder="$t('page.login.common.phonePlaceholder')" />
+    <NFormItem path="username">
+      <NInput v-model:value="model.username" :placeholder="$t('form.username.required')" />
     </NFormItem>
-    <NFormItem path="code">
-      <div class="w-full flex-y-center gap-16px">
-        <NInput v-model:value="model.code" :placeholder="$t('page.login.common.codePlaceholder')" />
-        <NButton size="large" :disabled="isCounting" :loading="loading" @click="getCaptcha(model.phone)">
-          {{ label }}
-        </NButton>
-      </div>
+    <NFormItem path="email">
+      <NInput v-model:value="model.email" :placeholder="$t('form.email.required')" />
     </NFormItem>
     <NFormItem path="password">
       <NInput
@@ -66,13 +141,8 @@ async function handleSubmit() {
         :placeholder="$t('page.login.common.passwordPlaceholder')"
       />
     </NFormItem>
-    <NFormItem path="confirmPassword">
-      <NInput
-        v-model:value="model.confirmPassword"
-        type="password"
-        show-password-on="click"
-        :placeholder="$t('page.login.common.confirmPasswordPlaceholder')"
-      />
+    <NFormItem>
+      <div ref="geetestContainer" id="geetest-captcha" class="geetest-container"></div>
     </NFormItem>
     <NSpace vertical :size="18" class="w-full">
       <NButton type="primary" size="large" round block @click="handleSubmit">
@@ -85,4 +155,9 @@ async function handleSubmit() {
   </NForm>
 </template>
 
-<style scoped></style>
+<style scoped>
+.geetest-container {
+  width: 100%;
+  min-height: 44px;
+}
+</style>

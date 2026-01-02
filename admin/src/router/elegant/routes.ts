@@ -74,5 +74,30 @@ export const generatedRoutes: GeneratedRoute[] = [
       constant: true,
       hideInMenu: true
     }
+  },
+  {
+    name: 'system-settings',
+    path: '/system-settings',
+    component: 'layout.base',
+    meta: {
+      title: 'system-settings',
+      i18nKey: 'route.system-settings',
+      icon: 'mdi:cog-outline',
+      order: 2,
+      roles: ['admin']
+    },
+    children: [
+      {
+        name: 'system-settings_basic',
+        path: '/system-settings/basic',
+        component: 'view.system-settings_basic',
+        meta: {
+          title: 'system-settings_basic',
+          i18nKey: 'route.system-settings_basic',
+          icon: 'mdi:cog',
+          roles: ['admin']
+        }
+      }
+    ]
   }
 ];

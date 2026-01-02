@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { loginModuleRecord } from '@/constants/app';
 import { useAuthStore } from '@/store/modules/auth';
 import { useRouterPush } from '@/hooks/common/router';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
+import { fetchGetCaptchaConfig, fetchValidateCaptcha } from '@/service/api/captcha';
 
 defineOptions({
   name: 'PwdLogin'
@@ -15,28 +16,123 @@ const { toggleLoginModule } = useRouterPush();
 const { formRef, validate } = useNaiveForm();
 
 interface FormModel {
-  userName: string;
+  email: string;
   password: string;
 }
 
 const model: FormModel = reactive({
-  userName: 'Soybean',
-  password: '123456'
+  email: 'admin@haoziwan.cn',
+  password: 'SecurePass123'
 });
 
 const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
-  // inside computed to make locale reactive, if not apply i18n, you can define it without computed
   const { formRules } = useFormRules();
 
   return {
-    userName: formRules.userName,
+    email: formRules.email,
     password: formRules.pwd
   };
 });
 
+const geetestContainer = ref<HTMLElement | null>(null);
+const captchaInstance = ref<any>(null);
+const validateToken = ref('');
+const isGeetestReady = ref(false);
+const geetestId = ref('');
+
+onMounted(async () => {
+  await initGeetest();
+});
+
+async function initGeetest() {
+  try {
+    console.log('开始初始化极验...');
+    const { data: config, error } = await fetchGetCaptchaConfig();
+    
+    if (!error && config) {
+      console.log('获取极验配置成功:', config);
+      geetestId.value = config.captchaId;
+      loadGeetestScript(() => {
+        console.log('极验脚本加载完成');
+        if ((window as any).initGeetest4) {
+          console.log('开始初始化极验实例...');
+          (window as any).initGeetest4(
+            {
+              captchaId: config.captchaId,
+              product: 'float'
+            },
+            (captcha: any) => {
+              console.log('极验实例创建成功');
+              captchaInstance.value = captcha;
+              captcha.onReady(() => {
+                console.log('极验准备就绪');
+                isGeetestReady.value = true;
+                nextTick(() => {
+                  console.log('DOM 容器:', geetestContainer.value);
+                  if (geetestContainer.value) {
+                    console.log('开始追加极验到容器...');
+                    captcha.appendTo(geetestContainer.value);
+                    console.log('极验已追加到容器');
+                  } else {
+                    console.error('极验容器不存在');
+                  }
+                });
+              });
+              captcha.onSuccess(async () => {
+                console.log('极验验证成功');
+                const result = captcha.getValidate();
+                if (result) {
+                  const { data: validateData, error: validateError } = await fetchValidateCaptcha({
+                    lot_number: result.lot_number,
+                    captcha_output: result.captcha_output,
+                    pass_token: result.pass_token,
+                    gen_time: result.gen_time
+                  });
+                  
+                  if (!validateError && validateData) {
+                    validateToken.value = validateData.validate_token;
+                    console.log('验证token已获取');
+                  }
+                }
+              });
+              captcha.onError((err: any) => {
+                console.error('Geetest error:', err);
+              });
+            }
+          );
+        } else {
+          console.error('initGeetest4 函数不存在');
+        }
+      });
+    } else {
+      console.error('获取极验配置失败:', error);
+    }
+  } catch (error) {
+    console.error('Failed to init Geetest:', error);
+  }
+}
+
+function loadGeetestScript(callback: () => void) {
+  const script = document.createElement('script');
+  script.src = 'https://static.geetest.com/v4/gt4.js';
+  script.async = true;
+  script.onload = callback;
+  document.head.appendChild(script);
+}
+
 async function handleSubmit() {
   await validate();
-  await authStore.login(model.userName, model.password);
+  
+  if (!validateToken.value) {
+    window.$notification?.error({
+      title: '验证失败',
+      content: '请先完成人机验证',
+      duration: 3000
+    });
+    return;
+  }
+  
+  await authStore.login(model.email, model.password, true, validateToken.value);
 }
 
 type AccountKey = 'super' | 'admin' | 'user';
@@ -44,7 +140,7 @@ type AccountKey = 'super' | 'admin' | 'user';
 interface Account {
   key: AccountKey;
   label: string;
-  userName: string;
+  email: string;
   password: string;
 }
 
@@ -52,32 +148,41 @@ const accounts = computed<Account[]>(() => [
   {
     key: 'super',
     label: $t('page.login.pwdLogin.superAdmin'),
-    userName: 'Super',
+    email: 'super@example.com',
     password: '123456'
   },
   {
     key: 'admin',
     label: $t('page.login.pwdLogin.admin'),
-    userName: 'Admin',
-    password: '123456'
+    email: 'admin@haoziwan.cn',
+    password: 'SecurePass123'
   },
   {
     key: 'user',
     label: $t('page.login.pwdLogin.user'),
-    userName: 'User',
+    email: 'user@example.com',
     password: '123456'
   }
 ]);
 
 async function handleAccountLogin(account: Account) {
-  await authStore.login(account.userName, account.password);
+  if (!validateToken.value) {
+    window.$notification?.error({
+      title: '验证失败',
+      content: '请先完成人机验证',
+      duration: 3000
+    });
+    return;
+  }
+  
+  await authStore.login(account.email, account.password, true, validateToken.value);
 }
 </script>
 
 <template>
   <NForm ref="formRef" :model="model" :rules="rules" size="large" :show-label="false" @keyup.enter="handleSubmit">
-    <NFormItem path="userName">
-      <NInput v-model:value="model.userName" :placeholder="$t('page.login.common.userNamePlaceholder')" />
+    <NFormItem path="email">
+      <NInput v-model:value="model.email" :placeholder="$t('form.email.required')" />
     </NFormItem>
     <NFormItem path="password">
       <NInput
@@ -86,6 +191,9 @@ async function handleAccountLogin(account: Account) {
         show-password-on="click"
         :placeholder="$t('page.login.common.passwordPlaceholder')"
       />
+    </NFormItem>
+    <NFormItem>
+      <div ref="geetestContainer" id="geetest-captcha" class="geetest-container"></div>
     </NFormItem>
     <NSpace vertical :size="24">
       <div class="flex-y-center justify-between">
@@ -115,4 +223,9 @@ async function handleAccountLogin(account: Account) {
   </NForm>
 </template>
 
-<style scoped></style>
+<style scoped>
+.geetest-container {
+  width: 100%;
+  min-height: 44px;
+}
+</style>

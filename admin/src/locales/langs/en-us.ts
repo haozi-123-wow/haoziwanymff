@@ -228,7 +228,9 @@ const local: App.I18n.Schema = {
     404: 'Page Not Found',
     500: 'Server Error',
     'iframe-page': 'Iframe',
-    home: 'Home'
+    home: 'Home',
+    'system-settings': 'System Settings',
+    'system-settings_basic': 'Basic Settings'
   },
   page: {
     login: {
@@ -305,6 +307,11 @@ const local: App.I18n.Schema = {
         desc5: 'Soybean just wrote some of the workbench pages casually, and it was enough to see!'
       },
       creativity: 'Creativity'
+    },
+    'system-settings': {
+      basic: {
+        description: 'System basic settings page, used to configure basic system parameters and options.'
+      }
     }
   },
   form: {
@@ -312,6 +319,10 @@ const local: App.I18n.Schema = {
     userName: {
       required: 'Please enter user name',
       invalid: 'User name format is incorrect'
+    },
+    username: {
+      required: 'Please enter username',
+      pattern: 'Username format is incorrect'
     },
     phone: {
       required: 'Please enter phone number',

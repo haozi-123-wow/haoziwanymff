@@ -177,7 +177,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   /** Init auth route */
   async function initAuthRoute() {
     // check if user info is initialized
-    if (!authStore.userInfo.userId) {
+    if (!authStore.userInfo.id) {
       await authStore.initUserInfo();
     }
 
@@ -197,7 +197,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     if (authStore.isStaticSuper) {
       addAuthRoutes(staticAuthRoutes);
     } else {
-      const filteredAuthRoutes = filterAuthRoutesByRoles(staticAuthRoutes, authStore.userInfo.roles);
+      const filteredAuthRoutes = filterAuthRoutesByRoles(staticAuthRoutes, [authStore.userInfo.role]);
 
       addAuthRoutes(filteredAuthRoutes);
     }

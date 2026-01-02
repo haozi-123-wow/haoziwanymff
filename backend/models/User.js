@@ -48,7 +48,7 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     defaultValue: 'user',
     validate: {
-      isIn: [['user', 'admin']]
+      isIn: [['user', 'admin', 'R_SUPER']]
     }
   }
 }, {
@@ -64,7 +64,8 @@ const User = sequelize.define('User', {
     },
     beforeUpdate: async (user) => {
       if (user.changed('password')) {
-        const salt = await bcrypt.hash(user.password, salt);
+        const salt = await bcrypt.genSalt(12);
+        user.password = await bcrypt.hash(user.password, salt);
       }
     }
   }

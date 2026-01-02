@@ -133,3 +133,4 @@ config/
 *.config.js
 *.local.js
 *.test.js
+admin/wendang/
