@@ -2,7 +2,7 @@ import { computed, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { defineStore } from 'pinia';
 import { useLoading } from '@sa/hooks';
-import { fetchGetUserInfo, fetchLogin } from '@/service/api';
+import { fetchGetUserInfo, fetchLogin, fetchLoginWithCode } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
@@ -130,6 +130,45 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     endLoading();
   }
 
+  /**
+   * Login with email verification code
+   *
+   * @param email Email address
+   * @param code Verification code
+   * @param validateToken Geetest validate token
+   */
+  async function loginWithCode(email: string, code: string, validateToken: string) {
+    startLoading();
+
+    const { data: loginToken, error } = await fetchLoginWithCode(email, code, validateToken);
+
+    if (!error) {
+      const pass = await loginByToken(loginToken);
+
+      if (pass) {
+        // Check if the tab needs to be cleared
+        const isClear = checkTabClear();
+        let needRedirect = true;
+
+        if (isClear) {
+          // If the tab needs to be cleared,it means we don't need to redirect.
+          needRedirect = false;
+        }
+        await redirectFromLogin(needRedirect);
+
+        window.$notification?.success({
+          title: $t('page.login.common.loginSuccess'),
+          content: $t('page.login.common.welcomeBack', { userName: userInfo.username }),
+          duration: 4500
+        });
+      }
+    } else {
+      resetStore();
+    }
+
+    endLoading();
+  }
+
   async function loginByToken(loginToken: Api.Auth.LoginToken) {
     // 1. stored in the localStorage, the later requests need it in headers
     localStg.set('token', loginToken.token);
@@ -179,6 +218,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     loginLoading,
     resetStore,
     login,
+    loginWithCode,
     initUserInfo
   };
 });

@@ -143,7 +143,8 @@ const generateActivationEmail = (user, activationLink) => {
 const sceneLabelMap = {
   register: '注册',
   reset_password: '重置密码',
-  update_email: '修改邮箱'
+  update_email: '修改邮箱',
+  login: '登录'
 };
 
 const generateVerificationCodeEmail = ({ sceneLabel, code }) => `

@@ -368,7 +368,99 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 
 ---
 
-### 3.4 获取当前用户信息（已完成）
+### 3.4 邮箱验证码登录（已完成）
+用于通过邮箱验证码进行登录，无需输入密码。此接口适用于用户忘记密码或希望快速登录的场景。
+
+*   **接口地址**: `POST /api/v1/auth/login-with-code`
+*   **是否需要认证**: 否
+*   **请求头 (Headers)**:
+    *   `Content-Type: application/json`
+    *   `User-Agent`: 推荐传入真实终端信息，便于风控审计
+    *   `X-Forwarded-For`（可选）: 由网关填写来源 IP，便于限流/风险分析
+*   **前置要求**:
+    1. 账号已通过激活流程，`isActive = true`
+    2. 已从 2.2 或 2.3 获取到有效的 `validate_token`
+    3. 已通过 3.6 接口获取有效的邮箱验证码
+    4. 受 Express Rate Limit 保护：同一 IP 15 分钟内最多 100 次
+*   **请求参数 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| email | string | 是 | 邮箱地址 |
+| code | string | 是 | 邮箱验证码（6位数字） |
+| validate_token | string | 是 | 极验验证通过后返回的令牌 |
+
+*   **请求示例**:
+```json
+{
+  "email": "admin@example.com",
+  "code": "123456",
+  "validate_token": "validation_success_token_abc123"
+}
+```
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "登录成功",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // JWT Token
+    "expireIn": 7200, // 过期时间（秒），例如 2 小时
+    "userInfo": {
+      "id": 1001,
+      "username": "admin_user",
+      "email": "admin@example.com",
+      "role": "user"
+    }
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 验证令牌无效)**:
+```json
+{
+  "code": 1002,
+  "message": "人机验证未通过，请重新验证",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 验证码错误或已过期)**:
+```json
+{
+  "code": 1001,
+  "message": "验证码错误或已过期",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 账户未激活)**:
+```json
+{
+  "code": 1003,
+  "message": "账户未激活，请检查邮箱并激活账户",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 用户不存在)**:
+```json
+{
+  "code": 1005,
+  "message": "用户不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 3.5 获取当前用户信息（已完成）
 用于前端校验 Token 有效性并获取当前登录用户的基本资料。
 
 *   **接口地址**: `GET /api/v1/user/me`
@@ -406,7 +498,7 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 
 ---
 
-### 3.5 用户登出
+### 3.6 用户登出
 **开发状态**: ✅ 已完成（`authController.logout` + 认证中间件）
 
 *注意：由于 JWT 是无状态的，服务端通常不需要做特殊处理。此接口主要用于客户端清除 Token。*
@@ -429,7 +521,7 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 ---
 
 
-### 3.6 发送邮箱验证码
+### 3.7 发送邮箱验证码
 **开发状态**: ✅ 已完成（已在 `authController` 与 `routes/auth` 实现）
 
 用于注册校验、找回密码、修改邮箱等场景。为防止刷接口，建议服务端实施频率限制（如 1 分钟一次）。
@@ -459,7 +551,7 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 
 ---
 
-### 3.7 找回密码 (邮箱验证)
+### 3.8 找回密码 (邮箱验证)
 **开发状态**: ✅ 已完成（`authController.resetPassword`）
 
 用户忘记密码时，通过邮箱验证码重置密码。
@@ -488,7 +580,7 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 
 ---
 
-### 3.8 更改绑定邮箱
+### 3.9 更改绑定邮箱
 **开发状态**: ✅ 已完成（`PATCH /user/email` 已上线）
 
 在用户已登录状态下，更换账号绑定的邮箱地址。

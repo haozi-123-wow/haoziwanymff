@@ -34,7 +34,6 @@ const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
   };
 });
 
-const geetestContainer = ref<HTMLElement | null>(null);
 const captchaInstance = ref<any>(null);
 const validateToken = ref('');
 const isGeetestReady = ref(false);
@@ -59,7 +58,7 @@ async function initGeetest() {
           (window as any).initGeetest4(
             {
               captchaId: config.captchaId,
-              product: 'float'
+              product: 'bind'
             },
             (captcha: any) => {
               console.log('极验实例创建成功');
@@ -67,16 +66,6 @@ async function initGeetest() {
               captcha.onReady(() => {
                 console.log('极验准备就绪');
                 isGeetestReady.value = true;
-                nextTick(() => {
-                  console.log('DOM 容器:', geetestContainer.value);
-                  if (geetestContainer.value) {
-                    console.log('开始追加极验到容器...');
-                    captcha.appendTo(geetestContainer.value);
-                    console.log('极验已追加到容器');
-                  } else {
-                    console.error('极验容器不存在');
-                  }
-                });
               });
               captcha.onSuccess(async () => {
                 console.log('极验验证成功');
@@ -92,6 +81,7 @@ async function initGeetest() {
                   if (!validateError && validateData) {
                     validateToken.value = validateData.validate_token;
                     console.log('验证token已获取');
+                    await performLogin();
                   }
                 }
               });
@@ -120,19 +110,23 @@ function loadGeetestScript(callback: () => void) {
   document.head.appendChild(script);
 }
 
+async function performLogin() {
+  await authStore.login(model.email, model.password, true, validateToken.value);
+}
+
 async function handleSubmit() {
   await validate();
   
-  if (!validateToken.value) {
+  if (!isGeetestReady.value || !captchaInstance.value) {
     window.$notification?.error({
-      title: '验证失败',
-      content: '请先完成人机验证',
+      title: '错误',
+      content: '人机验证未准备好，请稍后重试',
       duration: 3000
     });
     return;
   }
   
-  await authStore.login(model.email, model.password, true, validateToken.value);
+  captchaInstance.value.showCaptcha();
 }
 
 type AccountKey = 'super' | 'admin' | 'user';
@@ -166,16 +160,19 @@ const accounts = computed<Account[]>(() => [
 ]);
 
 async function handleAccountLogin(account: Account) {
-  if (!validateToken.value) {
+  model.email = account.email;
+  model.password = account.password;
+  
+  if (!isGeetestReady.value || !captchaInstance.value) {
     window.$notification?.error({
-      title: '验证失败',
-      content: '请先完成人机验证',
+      title: '错误',
+      content: '人机验证未准备好，请稍后重试',
       duration: 3000
     });
     return;
   }
   
-  await authStore.login(account.email, account.password, true, validateToken.value);
+  captchaInstance.value.showCaptcha();
 }
 </script>
 
@@ -191,9 +188,6 @@ async function handleAccountLogin(account: Account) {
         show-password-on="click"
         :placeholder="$t('page.login.common.passwordPlaceholder')"
       />
-    </NFormItem>
-    <NFormItem>
-      <div ref="geetestContainer" id="geetest-captcha" class="geetest-container"></div>
     </NFormItem>
     <NSpace vertical :size="24">
       <div class="flex-y-center justify-between">
@@ -222,10 +216,3 @@ async function handleAccountLogin(account: Account) {
     </NSpace>
   </NForm>
 </template>
-
-<style scoped>
-.geetest-container {
-  width: 100%;
-  min-height: 44px;
-}
-</style>

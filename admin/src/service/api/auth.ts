@@ -19,6 +19,25 @@ export function fetchLogin(account: string, password: string, validateToken = ''
   });
 }
 
+/**
+ * Login with email verification code
+ *
+ * @param email Email address
+ * @param code Verification code
+ * @param validateToken Geetest validate token
+ */
+export function fetchLoginWithCode(email: string, code: string, validateToken: string) {
+  return request<Api.Auth.LoginToken>({
+    url: '/auth/login-with-code',
+    method: 'post',
+    data: {
+      email,
+      code,
+      validate_token: validateToken
+    }
+  });
+}
+
 /** Get user info */
 export function fetchGetUserInfo() {
   return request<Api.Auth.UserInfo>({ url: '/user/me' });

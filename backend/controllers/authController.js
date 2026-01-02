@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
-const allowedEmailScenes = new Set(['register', 'reset_password', 'update_email']);
+const allowedEmailScenes = new Set(['register', 'reset_password', 'update_email', 'login']);
 const normalizeEmail = (email = '') => email.trim().toLowerCase();
 
 const defaultRegisterConfig = {
@@ -487,6 +487,124 @@ const login = async (req, res) => {
 };
 
 /**
+ * 邮箱验证码登录
+ */
+const loginWithEmailCode = async (req, res) => {
+  try {
+    const { email, code, validate_token } = req.body || {};
+    const sanitizedEmail = normalizeEmail(email);
+    const sanitizedCode = typeof code === 'string' ? code.trim() : '';
+    const sanitizedValidateToken = sanitizeString(validate_token);
+
+    const missingFields = [];
+    if (!sanitizedEmail) missingFields.push('email');
+    if (!sanitizedCode) missingFields.push('code');
+    if (!sanitizedValidateToken) missingFields.push('validate_token');
+
+    if (missingFields.length) {
+      return res.status(400).json({
+        code: 1001,
+        message: `缺少必要参数: ${missingFields.join(', ')}`,
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (!emailPattern.test(sanitizedEmail)) {
+      return res.status(400).json({
+        code: 1001,
+        message: '请输入合法的邮箱地址',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const isValidCaptcha = await verifyValidateToken(sanitizedValidateToken);
+    if (!isValidCaptcha) {
+      return res.status(400).json({
+        code: 1002,
+        message: '人机验证未通过，请重新验证',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const user = await User.findOne({
+      where: {
+        email: sanitizedEmail
+      }
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        code: 1002,
+        message: '邮箱未注册',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({
+        code: 1003,
+        message: '账户未激活，请检查邮箱并激活账户',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const verification = await verifyEmailCode(sanitizedEmail, 'login', sanitizedCode);
+    if (!verification.valid) {
+      return res.status(400).json({
+        code: 1002,
+        message: verification.reason,
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('服务器未配置 JWT_SECRET');
+    }
+
+    const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '2h';
+    const tokenPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role
+    };
+
+    const token = jwt.sign(tokenPayload, jwtSecret, { expiresIn: jwtExpiresIn });
+    const expireInSeconds = parseExpireInSeconds(jwtExpiresIn);
+
+    res.json({
+      code: 0,
+      message: '登录成功',
+      data: {
+        token,
+        expireIn: expireInSeconds,
+        userInfo: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role
+        }
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('邮箱验证码登录错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
  * 发送邮箱验证码
  */
 const sendEmailCode = async (req, res) => {
@@ -579,6 +697,26 @@ const sendEmailCode = async (req, res) => {
         return res.status(404).json({
           code: 1005,
           message: '该邮箱尚未注册',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+    }
+
+    if (normalizedScene === 'login') {
+      const existing = await User.findOne({ where: { email: normalizedEmail } });
+      if (!existing) {
+        return res.status(404).json({
+          code: 1005,
+          message: '该邮箱尚未注册',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+      if (!existing.isActive) {
+        return res.status(401).json({
+          code: 1003,
+          message: '账户未激活，请检查邮箱并激活账户',
           data: null,
           timestamp: Date.now()
         });
@@ -885,6 +1023,7 @@ module.exports = {
   register,
   activateAccount,
   login,
+  loginWithEmailCode,
   sendEmailCode,
   resetPassword,
   logout,

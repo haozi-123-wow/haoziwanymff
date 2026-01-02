@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, activateAccount, login, logout, sendEmailCode, resetPassword } = require('../controllers/authController');
+const { register, activateAccount, login, logout, sendEmailCode, resetPassword, loginWithEmailCode } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -12,6 +12,9 @@ router.get('/activate/:token?', activateAccount);
 
 // 用户登录
 router.post('/login', login);
+
+// 邮箱验证码登录
+router.post('/login-with-code', loginWithEmailCode);
 
 // 发送邮箱验证码
 router.post('/email-code', sendEmailCode);
