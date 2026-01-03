@@ -97,6 +97,15 @@ export const generatedRoutes: GeneratedRoute[] = [
           icon: 'mdi:cog',
           roles: ['admin']
         }
+      },
+      {
+        name: 'system-settings_email',
+        path: '/system-settings/email',
+        component: 'view.system-settings_email',
+        meta: {
+          title: 'system-settings_email',
+          i18nKey: 'route.system-settings_email'
+        }
       }
     ]
   }

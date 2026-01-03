@@ -22,4 +22,5 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   login: () => import("@/views/_builtin/login/index.vue"),
   home: () => import("@/views/home/index.vue"),
   "system-settings_basic": () => import("@/views/system-settings/basic/index.vue"),
+  "system-settings_email": () => import("@/views/system-settings/email/index.vue"),
 };

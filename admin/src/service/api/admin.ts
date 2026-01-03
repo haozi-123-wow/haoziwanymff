@@ -9,11 +9,12 @@ export function fetchGetAdminSettings() {
 }
 
 /** Update admin settings */
-export function fetchUpdateAdminSettings(data: Partial<Api.Admin.Settings>) {
+export function fetchUpdateAdminSettings(data: Partial<Api.Admin.Settings> | FormData) {
   return request<Api.Admin.Settings>({
     url: '/admin/settings',
     method: 'put',
-    data
+    data,
+    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined
   });
 }
 

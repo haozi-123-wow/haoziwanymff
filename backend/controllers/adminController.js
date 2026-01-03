@@ -1,19 +1,13 @@
 const { User, Setting } = require('../models');
 const { sendTestEmail } = require('../utils/emailService');
 const { verifyValidateToken } = require('../utils/geetestService');
+const { getUploadedFiles } = require('../middleware/upload');
 const { Op } = require('sequelize');
 
 const DEFAULT_REGISTER_CONFIG = {
   allowRegister: true,
   needActivation: true,
   needCaptcha: true
-};
-
-const DEFAULT_EMAIL_CONFIG = {
-  host: '',
-  port: 587,
-  secure: false,
-  from: ''
 };
 
 const DEFAULT_SMTP_CONFIG = {
@@ -32,11 +26,16 @@ const DEFAULT_GEETEST_CONFIG = {
 };
 
 const DEFAULT_SETTINGS_MAP = {
+  siteName: '',
   siteTitle: '',
   siteDescription: '',
+  siteKeywords: '',
+  siteAnnouncement: '',
   siteLogo: '',
   siteFavicon: '',
-  emailConfig: DEFAULT_EMAIL_CONFIG,
+  loginLogo: '',
+  adminQQ: '',
+  qqGroupLink: '',
   registerConfig: DEFAULT_REGISTER_CONFIG,
   smtpConfig: DEFAULT_SMTP_CONFIG,
   geetestConfig: DEFAULT_GEETEST_CONFIG
@@ -153,18 +152,33 @@ const getSettings = async (req, res) => {
  */
 const updateSettings = async (req, res) => {
   try {
+    const uploadedFiles = getUploadedFiles(req);
+    
     const {
+      siteName,
       siteTitle,
       siteDescription,
+      siteKeywords,
+      siteAnnouncement,
       siteLogo,
       siteFavicon,
-      emailConfig,
+      loginLogo,
+      adminQQ,
+      qqGroupLink,
       registerConfig,
       smtpConfig,
       geetestConfig
     } = req.body;
 
-    // 更新或创建网站标题
+    if (siteName !== undefined) {
+      await Setting.upsert({
+        key: 'siteName',
+        value: JSON.stringify(siteName),
+        description: '网站名称',
+        type: 'general'
+      });
+    }
+
     if (siteTitle !== undefined) {
       await Setting.upsert({
         key: 'siteTitle',
@@ -174,7 +188,6 @@ const updateSettings = async (req, res) => {
       });
     }
 
-    // 更新或创建网站描述
     if (siteDescription !== undefined) {
       await Setting.upsert({
         key: 'siteDescription',
@@ -184,37 +197,69 @@ const updateSettings = async (req, res) => {
       });
     }
 
-    // 更新或创建网站Logo
-    if (siteLogo !== undefined) {
+    if (siteKeywords !== undefined) {
+      await Setting.upsert({
+        key: 'siteKeywords',
+        value: JSON.stringify(siteKeywords),
+        description: '网站关键词',
+        type: 'general'
+      });
+    }
+
+    if (siteAnnouncement !== undefined) {
+      await Setting.upsert({
+        key: 'siteAnnouncement',
+        value: JSON.stringify(siteAnnouncement),
+        description: '网站公告',
+        type: 'general'
+      });
+    }
+
+    if (uploadedFiles.siteLogo || siteLogo !== undefined) {
       await Setting.upsert({
         key: 'siteLogo',
-        value: JSON.stringify(siteLogo),
+        value: JSON.stringify(uploadedFiles.siteLogo || siteLogo),
         description: '网站Logo URL',
         type: 'general'
       });
     }
 
-    // 更新或创建网站Favicon
-    if (siteFavicon !== undefined) {
+    if (uploadedFiles.siteFavicon || siteFavicon !== undefined) {
       await Setting.upsert({
         key: 'siteFavicon',
-        value: JSON.stringify(siteFavicon),
+        value: JSON.stringify(uploadedFiles.siteFavicon || siteFavicon),
         description: '网站Favicon URL',
         type: 'general'
       });
     }
 
-    // 更新或创建邮件配置
-    if (emailConfig) {
+    if (uploadedFiles.loginLogo || loginLogo !== undefined) {
       await Setting.upsert({
-        key: 'emailConfig',
-        value: JSON.stringify(emailConfig),
-        description: '邮件配置',
-        type: 'email'
+        key: 'loginLogo',
+        value: JSON.stringify(uploadedFiles.loginLogo || loginLogo),
+        description: '登录页Logo URL',
+        type: 'general'
       });
     }
 
-    // 更新或创建注册配置
+    if (adminQQ !== undefined) {
+      await Setting.upsert({
+        key: 'adminQQ',
+        value: JSON.stringify(adminQQ),
+        description: '站长QQ',
+        type: 'general'
+      });
+    }
+
+    if (qqGroupLink !== undefined) {
+      await Setting.upsert({
+        key: 'qqGroupLink',
+        value: JSON.stringify(qqGroupLink),
+        description: 'QQ群链接',
+        type: 'general'
+      });
+    }
+
     if (registerConfig) {
       await Setting.upsert({
         key: 'registerConfig',
@@ -224,9 +269,7 @@ const updateSettings = async (req, res) => {
       });
     }
 
-    // 更新或创建SMTP配置
     if (smtpConfig) {
-      // 如果提供了密码，需要特殊处理（可能需要加密）
       await Setting.upsert({
         key: 'smtpConfig',
         value: JSON.stringify(smtpConfig),
@@ -235,7 +278,6 @@ const updateSettings = async (req, res) => {
       });
     }
     
-    // 更新或创建极验配置
     if (geetestConfig) {
       await Setting.upsert({
         key: 'geetestConfig',
@@ -249,6 +291,7 @@ const updateSettings = async (req, res) => {
       code: 0,
       message: '网站设置更新成功',
       data: {
+        siteName,
         siteTitle,
         siteDescription,
         updatedAt: new Date()

@@ -9,19 +9,20 @@
     "seed": "node scripts/seed.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "mysql2": "^3.6.0",
-    "sequelize": "^6.32.1",
-    "redis": "^4.6.7",
+    "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.4",
-    "dotenv": "^16.3.1",
     "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "express-rate-limit": "^6.10.0",
     "helmet": "^7.0.0",
     "joi": "^17.9.2",
-    "axios": "^1.6.0"
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.6.0",
+    "nodemailer": "^6.9.4",
+    "redis": "^4.6.7",
+    "sequelize": "^6.32.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

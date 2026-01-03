@@ -230,7 +230,8 @@ const local: App.I18n.Schema = {
     'iframe-page': 'Iframe',
     home: 'Home',
     'system-settings': 'System Settings',
-    'system-settings_basic': 'Basic Settings'
+    'system-settings_basic': 'Basic Settings',
+    'system-settings_email': 'Email Settings'
   },
   page: {
     login: {

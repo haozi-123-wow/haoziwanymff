@@ -25,6 +25,7 @@ declare module "@elegant-router/types" {
     "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
     "system-settings": "/system-settings";
     "system-settings_basic": "/system-settings/basic";
+    "system-settings_email": "/system-settings/email";
   };
 
   /**
@@ -86,6 +87,7 @@ declare module "@elegant-router/types" {
     | "login"
     | "home"
     | "system-settings_basic"
+    | "system-settings_email"
   >;
 
   /**

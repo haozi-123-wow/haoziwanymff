@@ -633,16 +633,16 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
   "code": 0,
   "message": "success",
   "data": {
+    "siteName": "Haoziwanymff",
     "siteTitle": "Haoziwanymff 管理系统",
     "siteDescription": "一个功能强大的二级域名分发系统",
+    "siteKeywords": "二级域名,域名分发,域名管理",
+    "siteAnnouncement": "欢迎使用Haoziwanymff系统",
     "siteLogo": "https://example.com/logo.png",
     "siteFavicon": "https://example.com/favicon.ico",
-    "emailConfig": {
-      "host": "smtp.gmail.com",
-      "port": 587,
-      "secure": false,
-      "from": "noreply@haoziwanymff.com"
-    },
+    "loginLogo": "https://example.com/login-logo.png",
+    "adminQQ": "123456789",
+    "qqGroupLink": "https://qm.qq.com/xxx",
     "registerConfig": {
       "allowRegister": true,
       "needActivation": true,
@@ -674,30 +674,43 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 *   **是否需要认证**: 是（需要管理员权限）
 *   **请求头 (Headers)**:
     *   `Authorization: Bearer <token>`
+    *   `Content-Type: multipart/form-data`（上传文件时）
 
 *   **请求参数 (Body)**:
 
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
+| siteName | string | 否 | 网站名称 |
 | siteTitle | string | 否 | 网站标题 |
 | siteDescription | string | 否 | 网站描述 |
-| siteLogo | string | 否 | 网站Logo URL |
-| siteFavicon | string | 否 | 网站Favicon URL |
-| emailConfig | object | 否 | 邮件配置对象 |
+| siteKeywords | string | 否 | 网站关键词 |
+| siteAnnouncement | string | 否 | 网站公告 |
+| siteLogo | file/string | 否 | 网站Logo（支持文件上传或URL） |
+| siteFavicon | file/string | 否 | 网站Favicon（支持文件上传或URL） |
+| loginLogo | file/string | 否 | 登录页Logo（支持文件上传或URL） |
+| adminQQ | string | 否 | 站长QQ |
+| qqGroupLink | string | 否 | QQ群链接 |
 | registerConfig | object | 否 | 注册配置对象 |
 | smtpConfig | object | 否 | SMTP配置对象 |
 
-*   **请求示例**:
+**文件上传限制**:
+- **支持的格式**: jpeg, jpg, png, gif, webp, ico, svg
+- **文件大小**: 最大 2MB
+- **上传方式**: 使用 `multipart/form-data` 格式
+
+*   **请求示例 (JSON格式)**:
 ```json
 {
+  "siteName": "Haoziwanymff",
   "siteTitle": "Haoziwanymff 管理系统",
   "siteDescription": "一个功能强大的二级域名分发系统",
-  "emailConfig": {
-    "host": "smtp.gmail.com",
-    "port": 587,
-    "secure": false,
-    "from": "noreply@haoziwanymff.com"
-  },
+  "siteKeywords": "二级域名,域名分发,域名管理",
+  "siteAnnouncement": "欢迎使用Haoziwanymff系统",
+  "siteLogo": "https://example.com/logo.png",
+  "siteFavicon": "https://example.com/favicon.ico",
+  "loginLogo": "https://example.com/login-logo.png",
+  "adminQQ": "123456789",
+  "qqGroupLink": "https://qm.qq.com/xxx",
   "registerConfig": {
     "allowRegister": true,
     "needActivation": true,
@@ -714,12 +727,27 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 }
 ```
 
+*   **请求示例 (文件上传格式)**:
+```
+POST /api/v1/admin/settings
+Content-Type: multipart/form-data
+Authorization: Bearer <token>
+
+siteName: "Haoziwanymff"
+siteTitle: "Haoziwanymff 管理系统"
+siteLogo: [二进制文件]
+siteFavicon: [二进制文件]
+loginLogo: [二进制文件]
+adminQQ: "123456789"
+```
+
 *   **响应示例 (成功)**:
 ```json
 {
   "code": 0,
   "message": "网站设置更新成功",
   "data": {
+    "siteName": "Haoziwanymff",
     "siteTitle": "Haoziwanymff 管理系统",
     "siteDescription": "一个功能强大的二级域名分发系统",
     "updatedAt": "2023-10-30T15:30:00.000Z"
@@ -734,6 +762,24 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
   "code": 1002,
   "message": "权限不足，仅管理员可执行此操作",
   "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 文件格式错误)**:
+```json
+{
+  "code": 400,
+  "message": "只允许上传图片文件 (jpeg, jpg, png, gif, webp, ico, svg)",
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 文件大小超限)**:
+```json
+{
+  "code": 400,
+  "message": "文件大小超过限制，最大允许2MB",
   "timestamp": 1698765432000
 }
 ```

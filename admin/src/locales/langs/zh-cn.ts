@@ -226,7 +226,8 @@ const local: App.I18n.Schema = {
     'iframe-page': '外链页面',
     home: '首页',
     'system-settings': '系统设置',
-    'system-settings_basic': '基础设置'
+    'system-settings_basic': '基础设置',
+    'system-settings_email': '邮箱设置'
   },
   page: {
     login: {
