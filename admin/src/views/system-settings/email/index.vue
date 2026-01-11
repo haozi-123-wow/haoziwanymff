@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { fetchGetAdminSettings, fetchTestEmail, fetchUpdateAdminSettings } from '@/service/api/admin';
+import { fetchGetCaptchaConfig, fetchValidateCaptcha } from '@/service/api/captcha';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
-import { fetchGetAdminSettings, fetchUpdateAdminSettings, fetchTestEmail } from '@/service/api/admin';
-import { fetchGetCaptchaConfig, fetchValidateCaptcha } from '@/service/api/captcha';
 
 defineOptions({
   name: 'SystemSettingsEmail'
@@ -42,9 +42,7 @@ const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
   const { formRules } = useFormRules();
 
   return {
-    smtpHost: [
-      { required: true, message: '请输入SMTP服务器地址', trigger: 'blur' }
-    ],
+    smtpHost: [{ required: true, message: '请输入SMTP服务器地址', trigger: 'blur' }],
     smtpPort: [
       {
         validator: (_rule: any, value: number) => {
@@ -59,12 +57,8 @@ const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
         trigger: ['blur', 'change']
       }
     ],
-    smtpUser: [
-      { required: true, message: '请输入SMTP用户名', trigger: 'blur' }
-    ],
-    smtpPass: [
-      { required: true, message: '请输入SMTP密码', trigger: 'blur' }
-    ],
+    smtpUser: [{ required: true, message: '请输入SMTP用户名', trigger: 'blur' }],
+    smtpPass: [{ required: true, message: '请输入SMTP密码', trigger: 'blur' }],
     smtpFrom: [
       { required: true, message: '请输入发件人邮箱地址', trigger: 'blur' },
       { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
@@ -88,7 +82,7 @@ function loadGeetestScript(callback: () => void) {
 async function initGeetest() {
   try {
     const { data: config, error } = await fetchGetCaptchaConfig();
-    
+
     if (!error && config) {
       geetestId.value = config.captchaId;
       loadGeetestScript(() => {
@@ -112,7 +106,7 @@ async function initGeetest() {
                     pass_token: result.pass_token,
                     gen_time: result.gen_time
                   });
-                  
+
                   if (!validateError && validateData) {
                     validate_token.value = validateData.validate_token;
                     await performTestEmail();
@@ -136,7 +130,7 @@ async function loadSettings() {
   try {
     loading.value = true;
     const { data, error } = await fetchGetAdminSettings();
-    
+
     if (!error && data && data.smtpConfig) {
       model.smtpHost = data.smtpConfig.host || '';
       model.smtpPort = data.smtpConfig.port || 465;
@@ -158,10 +152,10 @@ async function loadSettings() {
 
 async function handleSubmit() {
   await validate();
-  
+
   try {
     saving.value = true;
-    
+
     const formData = new FormData();
     formData.append('smtpConfig[host]', model.smtpHost);
     formData.append('smtpConfig[port]', model.smtpPort.toString());
@@ -169,9 +163,9 @@ async function handleSubmit() {
     formData.append('smtpConfig[user]', model.smtpUser);
     formData.append('smtpConfig[pass]', model.smtpPass);
     formData.append('smtpConfig[from]', model.smtpFrom);
-    
+
     const { error } = await fetchUpdateAdminSettings(formData);
-    
+
     if (!error) {
       window.$notification?.success({
         title: '成功',
@@ -192,7 +186,7 @@ async function handleSubmit() {
 
 async function handleTestEmail() {
   await validate();
-  
+
   if (!isGeetestReady.value || !captchaInstance.value) {
     window.$notification?.error({
       title: '错误',
@@ -201,19 +195,19 @@ async function handleTestEmail() {
     });
     return;
   }
-  
+
   captchaInstance.value.showCaptcha();
 }
 
 async function performTestEmail() {
   try {
     testing.value = true;
-    
+
     const { error } = await fetchTestEmail({
       to: model.smtpFrom,
       validate_token: validate_token.value
     });
-    
+
     if (!error) {
       window.$notification?.success({
         title: '成功',
@@ -245,33 +239,29 @@ async function performTestEmail() {
           <NFormItem label="SMTP服务器" path="smtpHost">
             <NInput v-model:value="model.smtpHost" placeholder="例如: smtp.qq.com" />
           </NFormItem>
-          
+
           <NFormItem label="SMTP端口" path="smtpPort">
-            <NInputNumber 
-              v-model:value="model.smtpPort" 
-              :min="1" 
-              :max="65535" 
+            <NInputNumber
+              v-model:value="model.smtpPort"
+              :min="1"
+              :max="65535"
               :precision="0"
               :show-button="false"
               placeholder="请输入SMTP端口"
-              style="width: 200px" 
+              style="width: 200px"
             />
-            <template #feedback>
-              常用端口: 25(非加密), 465(SSL), 587(TLS)
-            </template>
+            <template #feedback>常用端口: 25(非加密), 465(SSL), 587(TLS)</template>
           </NFormItem>
-          
+
           <NFormItem label="启用SSL/TLS" path="smtpSecure">
             <NSwitch v-model:value="model.smtpSecure" />
-            <template #feedback>
-              使用SSL加密连接，建议开启
-            </template>
+            <template #feedback>使用SSL加密连接，建议开启</template>
           </NFormItem>
-          
+
           <NFormItem label="SMTP用户名" path="smtpUser">
             <NInput v-model:value="model.smtpUser" placeholder="请输入邮箱地址" />
           </NFormItem>
-          
+
           <NFormItem label="SMTP密码" path="smtpPass">
             <NInput
               v-model:value="model.smtpPass"
@@ -280,32 +270,26 @@ async function performTestEmail() {
               placeholder="请输入邮箱密码或授权码"
             />
           </NFormItem>
-          
+
           <NFormItem label="发件人邮箱" path="smtpFrom">
             <NInput v-model:value="model.smtpFrom" placeholder="请输入发件人邮箱地址" />
           </NFormItem>
-          
+
           <NFormItem :show-label="false" class="mt-16px">
             <NSpace :size="12">
-              <NButton type="primary" :loading="saving" @click="handleSubmit">
-                保存设置
-              </NButton>
-              <NButton :loading="testing" @click="handleTestEmail">
-                发送测试邮件
-              </NButton>
-              <NButton @click="loadSettings">
-                重置
-              </NButton>
+              <NButton type="primary" :loading="saving" @click="handleSubmit">保存设置</NButton>
+              <NButton :loading="testing" @click="handleTestEmail">发送测试邮件</NButton>
+              <NButton @click="loadSettings">重置</NButton>
             </NSpace>
           </NFormItem>
-          
+
           <NFormItem :show-label="false">
             <div id="geetest-captcha"></div>
           </NFormItem>
         </NForm>
       </NSpin>
     </NCard>
-    
+
     <NCard :bordered="false" class="card-wrapper">
       <template #header>
         <span>邮箱配置说明</span>

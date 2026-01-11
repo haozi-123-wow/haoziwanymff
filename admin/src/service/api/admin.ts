@@ -37,12 +37,10 @@ export function fetchGetUsers(params?: Api.Admin.GetUsersParams) {
 }
 
 /** Update user status */
-export function fetchUpdateUserStatus(userId: string, isActive: boolean) {
+export function fetchUpdateUserStatus(userId: string, data: Api.Admin.UpdateUserStatusParams) {
   return request<Api.Admin.UpdateUserStatusResult>({
     url: `/admin/users/${userId}/status`,
     method: 'put',
-    data: {
-      isActive
-    }
+    data
   });
 }

@@ -1,5 +1,5 @@
 const express = require('express');
-const { getMe, updateEmail } = require('../controllers/authController');
+const { getMe, updateEmail, updateProfile } = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -8,5 +8,8 @@ router.get('/me', getMe);
 
 // 修改绑定邮箱
 router.patch('/email', updateEmail);
+
+// 更改用户资料
+router.patch('/profile', updateProfile);
 
 module.exports = router;

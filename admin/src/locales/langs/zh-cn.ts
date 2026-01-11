@@ -227,7 +227,9 @@ const local: App.I18n.Schema = {
     home: '首页',
     'system-settings': '系统设置',
     'system-settings_basic': '基础设置',
-    'system-settings_email': '邮箱设置'
+    'system-settings_email': '邮箱设置',
+    'user-management': '用户管理',
+    'user-management_list': '用户列表'
   },
   page: {
     login: {

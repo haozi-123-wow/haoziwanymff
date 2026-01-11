@@ -610,6 +610,118 @@ GET /api/v1/auth/activate/f2hj3k4l5m6n7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j
 
 ---
 
+### 3.10 更改用户资料
+**开发状态**: ✅ 已完成（`PATCH /api/v1/user/profile` 已上线）
+
+用户在已登录状态下，修改自己的个人资料信息（用户名、邮箱等）。
+
+
+*   **接口地址**: `PATCH /api/v1/user/profile`
+*   **是否需要认证**: 是
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+*   **请求参数 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| username | string | 否 | 新用户名（3-20位字母、数字或下划线） |
+| email | string | 否 | 新邮箱地址（需符合邮箱格式） |
+| currentPassword | string | 条件必填 | 当前密码（修改邮箱时必填） |
+
+**注意事项**:
+- 修改邮箱时必须提供当前密码进行验证
+- 用户名不能与现有用户重复
+- 邮箱不能与现有用户重复
+- 至少提供一个需要修改的字段
+
+*   **请求示例**:
+
+示例 1: 仅修改用户名
+```json
+{
+  "username": "new_username"
+}
+```
+
+示例 2: 修改邮箱（需提供当前密码）
+```json
+{
+  "email": "newemail@example.com",
+  "currentPassword": "oldPassword123"
+}
+```
+
+示例 3: 同时修改用户名和邮箱
+```json
+{
+  "username": "new_username",
+  "email": "newemail@example.com",
+  "currentPassword": "oldPassword123"
+}
+```
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "用户资料更新成功",
+  "data": {
+    "id": "1001",
+    "username": "new_username",
+    "email": "newemail@example.com",
+    "role": "user",
+    "isActive": true,
+    "isBanned": false,
+    "banReason": null,
+    "createdAt": "2023-10-30T12:00:00.000Z",
+    "updatedAt": "2023-10-30T16:30:00.000Z"
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 用户名已存在)**:
+```json
+{
+  "code": 1004,
+  "message": "该用户名已被使用",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 邮箱已存在)**:
+```json
+{
+  "code": 1004,
+  "message": "该邮箱已被注册",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 密码错误)**:
+```json
+{
+  "code": 1002,
+  "message": "当前密码错误",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 修改邮箱时未提供密码)**:
+```json
+{
+  "code": 1001,
+  "message": "修改邮箱时必须提供当前密码",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
 ## 4. 管理员模块
 
 管理员可以管理网站设置、用户信息等系统配置。
@@ -835,7 +947,7 @@ adminQQ: "123456789"
 
 ---
 
-### 4.4 获取用户列表
+### 4.4 获取用户列表 ✅ 已开发完成
 获取系统中的所有用户信息（分页）。
 
 *   **接口地址**: `GET /api/v1/admin/users`
@@ -863,6 +975,8 @@ adminQQ: "123456789"
         "username": "admin_user",
         "email": "admin@example.com",
         "isActive": true,
+        "isBanned": false,
+        "banReason": null,
         "role": "admin",
         "createdAt": "2023-10-30T12:00:00.000Z"
       },
@@ -871,6 +985,8 @@ adminQQ: "123456789"
         "username": "normal_user",
         "email": "user@example.com",
         "isActive": true,
+        "isBanned": false,
+        "banReason": null,
         "role": "user",
         "createdAt": "2023-10-30T12:15:00.000Z"
       }
@@ -885,8 +1001,8 @@ adminQQ: "123456789"
 
 ---
 
-### 4.5 更新用户状态
-更新指定用户的状态（激活/禁用）。
+### 4.5 更新用户状态 ✅ 已开发完成
+更新指定用户的状态（激活/禁用/封禁）。
 
 *   **接口地址**: `PUT /api/v1/admin/users/:userId/status`
 *   **是否需要认证**: 是（需要管理员权限）
@@ -903,12 +1019,33 @@ adminQQ: "123456789"
 
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| isActive | boolean | 是 | 是否激活 |
+| isActive | boolean | 否 | 是否激活 (0:未激活, 1:已激活) |
+| isBanned | boolean | 否 | 是否封禁 (0:未封禁, 1:已封禁) |
+| banReason | string | 条件必填 | 封禁原因（封禁时必填） |
 
 *   **请求示例**:
+
+示例 1: 激活用户
 ```json
 {
-  "isActive": false
+  "isActive": true
+}
+```
+
+示例 2: 封禁用户（需提供封禁原因）
+```json
+{
+  "isActive": true,
+  "isBanned": true,
+  "banReason": "违反社区规则"
+}
+```
+
+示例 3: 解封用户
+```json
+{
+  "isBanned": false,
+  "banReason": ""
 }
 ```
 
@@ -919,8 +1056,136 @@ adminQQ: "123456789"
   "message": "用户状态更新成功",
   "data": {
     "userId": "1002",
-    "isActive": false
+    "isActive": true,
+    "isBanned": false,
+    "banReason": null
   },
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.6 管理员更改用户资料
+**开发状态**: ⏳ 待开发
+
+管理员可以修改指定用户的个人资料信息（用户名、邮箱等）。
+
+*   **接口地址**: `PATCH /api/v1/admin/users/:userId/profile`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| userId | string | 是 | 用户ID |
+
+*   **请求参数 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| username | string | 否 | 新用户名（3-20位字母、数字或下划线） |
+| email | string | 否 | 新邮箱地址（需符合邮箱格式） |
+
+**注意事项**:
+- 管理员修改用户资料时不需要提供当前密码
+- 用户名不能与现有用户重复（排除被修改的用户）
+- 邮箱不能与现有用户重复（排除被修改的用户）
+- 至少提供一个需要修改的字段
+- 不能修改自己的资料（防止误操作）
+
+*   **请求示例**:
+
+示例 1: 仅修改用户名
+```json
+{
+  "username": "new_username"
+}
+```
+
+示例 2: 仅修改邮箱
+```json
+{
+  "email": "newemail@example.com"
+}
+```
+
+示例 3: 同时修改用户名和邮箱
+```json
+{
+  "username": "new_username",
+  "email": "newemail@example.com"
+}
+```
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "用户资料更新成功",
+  "data": {
+    "id": "1002",
+    "username": "new_username",
+    "email": "newemail@example.com",
+    "role": "user",
+    "isActive": true,
+    "isBanned": false,
+    "banReason": null,
+    "createdAt": "2023-10-30T12:15:00.000Z",
+    "updatedAt": "2023-10-30T16:30:00.000Z"
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 用户不存在)**:
+```json
+{
+  "code": 1005,
+  "message": "用户不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 用户名已存在)**:
+```json
+{
+  "code": 1004,
+  "message": "该用户名已被使用",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 邮箱已存在)**:
+```json
+{
+  "code": 1004,
+  "message": "该邮箱已被注册",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 不能修改自己的资料)**:
+```json
+{
+  "code": 1001,
+  "message": "不能修改自己的资料",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 未提供任何修改字段)**:
+```json
+{
+  "code": 1001,
+  "message": "请提供至少一个需要修改的字段",
+  "data": null,
   "timestamp": 1698765432000
 }
 ```

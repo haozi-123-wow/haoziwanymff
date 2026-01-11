@@ -11,7 +11,10 @@ const isHttpProxy = import.meta.env.DEV && import.meta.env.VITE_HTTP_PROXY === '
 const { baseURL, otherBaseURL } = getServiceBaseURL(import.meta.env, isHttpProxy);
 
 const parseEnvCodes = (value?: string) =>
-  value?.split(',').map(code => code.trim()).filter(Boolean) ?? [];
+  value
+    ?.split(',')
+    .map(code => code.trim())
+    .filter(Boolean) ?? [];
 
 export const request = createFlatRequest(
   {
@@ -112,9 +115,16 @@ export const request = createFlatRequest(
       let backendErrorCode = '';
 
       // get backend error message and code
-      if (error.code === BACKEND_ERROR_CODE) {
-        message = error.response?.data?.message || message;
+      // 处理后端业务错误（BACKEND_ERROR_CODE）和 HTTP 错误（如 403、401 等）
+      if (error.code === BACKEND_ERROR_CODE || error.response) {
+        // 优先使用后端返回的错误消息
+        message = error.response?.data?.message || error.response?.data?.data?.message || message;
         backendErrorCode = String(error.response?.data?.code ?? '');
+
+        // 对于 403 状态码，确保显示后端返回的详细错误信息
+        if (error.response?.status === 403 && error.response?.data?.message) {
+          message = error.response.data.message;
+        }
       }
 
       // the error message is displayed in the modal

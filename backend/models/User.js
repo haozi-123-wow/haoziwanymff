@@ -36,6 +36,16 @@ const User = sequelize.define('User', {
     field: 'is_active', // 映射到数据库中的 is_active 字段
     defaultValue: false
   },
+  isBanned: {
+    type: DataTypes.BOOLEAN,
+    field: 'is_banned', // 映射到数据库中的 is_banned 字段
+    defaultValue: false
+  },
+  banReason: {
+    type: DataTypes.TEXT,
+    field: 'ban_reason', // 映射到数据库中的 ban_reason 字段
+    allowNull: true
+  },
   activationToken: {
     type: DataTypes.STRING,
     field: 'activation_token' // 映射到数据库中的 activation_token 字段

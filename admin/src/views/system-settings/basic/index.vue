@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { fetchGetAdminSettings, fetchUpdateAdminSettings } from '@/service/api/admin';
 import { useAuthStore } from '@/store/modules/auth';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
-import { fetchGetAdminSettings, fetchUpdateAdminSettings } from '@/service/api/admin';
 
 defineOptions({
   name: 'SystemSettingsBasic'
@@ -54,21 +54,11 @@ const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
       { required: true, message: '请输入网站标题', trigger: 'blur' },
       { max: 200, message: '网站标题不能超过200个字符', trigger: 'blur' }
     ],
-    siteDescription: [
-      { max: 500, message: '网站描述不能超过500个字符', trigger: 'blur' }
-    ],
-    siteKeywords: [
-      { max: 200, message: '网站关键词不能超过200个字符', trigger: 'blur' }
-    ],
-    siteAnnouncement: [
-      { max: 1000, message: '网站公告不能超过1000个字符', trigger: 'blur' }
-    ],
-    adminQQ: [
-      { pattern: /^[1-9][0-9]{4,10}$/, message: '请输入正确的QQ号码', trigger: 'blur' }
-    ],
-    qqGroupLink: [
-      { type: 'url', message: '请输入正确的URL格式', trigger: 'blur' }
-    ]
+    siteDescription: [{ max: 500, message: '网站描述不能超过500个字符', trigger: 'blur' }],
+    siteKeywords: [{ max: 200, message: '网站关键词不能超过200个字符', trigger: 'blur' }],
+    siteAnnouncement: [{ max: 1000, message: '网站公告不能超过1000个字符', trigger: 'blur' }],
+    adminQQ: [{ pattern: /^[1-9][0-9]{4,10}$/, message: '请输入正确的QQ号码', trigger: 'blur' }],
+    qqGroupLink: [{ type: 'url', message: '请输入正确的URL格式', trigger: 'blur' }]
   };
 });
 
@@ -80,7 +70,7 @@ async function loadSettings() {
   try {
     loading.value = true;
     const { data, error } = await fetchGetAdminSettings();
-    
+
     if (!error && data) {
       Object.assign(model, data);
     }
@@ -97,10 +87,10 @@ async function loadSettings() {
 
 async function handleSubmit() {
   await validate();
-  
+
   try {
     saving.value = true;
-    
+
     const formData = new FormData();
     formData.append('siteName', model.siteName);
     formData.append('siteTitle', model.siteTitle);
@@ -109,9 +99,9 @@ async function handleSubmit() {
     formData.append('siteAnnouncement', model.siteAnnouncement);
     formData.append('adminQQ', model.adminQQ);
     formData.append('qqGroupLink', model.qqGroupLink);
-    
+
     const { error } = await fetchUpdateAdminSettings(formData);
-    
+
     if (!error) {
       window.$notification?.success({
         title: '成功',
@@ -158,9 +148,9 @@ async function handleSiteLogoUpload({ file }: { file: File }) {
   try {
     const formData = new FormData();
     formData.append('siteLogo', file);
-    
+
     const { error } = await fetchUpdateAdminSettings(formData);
-    
+
     if (!error) {
       window.$notification?.success({
         title: '成功',
@@ -182,9 +172,9 @@ async function handleSiteFaviconUpload({ file }: { file: File }) {
   try {
     const formData = new FormData();
     formData.append('siteFavicon', file);
-    
+
     const { error } = await fetchUpdateAdminSettings(formData);
-    
+
     if (!error) {
       window.$notification?.success({
         title: '成功',
@@ -206,9 +196,9 @@ async function handleLoginLogoUpload({ file }: { file: File }) {
   try {
     const formData = new FormData();
     formData.append('loginLogo', file);
-    
+
     const { error } = await fetchUpdateAdminSettings(formData);
-    
+
     if (!error) {
       window.$notification?.success({
         title: '成功',
@@ -239,41 +229,26 @@ async function handleLoginLogoUpload({ file }: { file: File }) {
             <NFormItemGi :span="2" label="网站名称" path="siteName">
               <NInput v-model:value="model.siteName" placeholder="请输入网站名称" />
             </NFormItemGi>
-            
+
             <NFormItemGi :span="2" label="网站标题" path="siteTitle">
               <NInput v-model:value="model.siteTitle" placeholder="请输入网站标题" />
             </NFormItemGi>
-            
+
             <NFormItemGi :span="2" label="网站描述" path="siteDescription">
-              <NInput
-                v-model:value="model.siteDescription"
-                type="textarea"
-                :rows="3"
-                placeholder="请输入网站描述"
-              />
+              <NInput v-model:value="model.siteDescription" type="textarea" :rows="3" placeholder="请输入网站描述" />
             </NFormItemGi>
-            
+
             <NFormItemGi :span="2" label="网站关键词" path="siteKeywords">
               <NInput v-model:value="model.siteKeywords" placeholder="请输入网站关键词，多个关键词用逗号分隔" />
             </NFormItemGi>
-            
+
             <NFormItemGi :span="2" label="网站公告" path="siteAnnouncement">
-              <NInput
-                v-model:value="model.siteAnnouncement"
-                type="textarea"
-                :rows="4"
-                placeholder="请输入网站公告"
-              />
+              <NInput v-model:value="model.siteAnnouncement" type="textarea" :rows="4" placeholder="请输入网站公告" />
             </NFormItemGi>
-            
+
             <NFormItemGi :span="1" label="网站LOGO">
               <NSpace vertical :size="8">
-                <NUpload
-                  :max="1"
-                  accept="image/*"
-                  :before-upload="beforeUpload"
-                  @change="handleSiteLogoUpload"
-                >
+                <NUpload :max="1" accept="image/*" :before-upload="beforeUpload" @change="handleSiteLogoUpload">
                   <NButton>选择图片</NButton>
                 </NUpload>
                 <NImage
@@ -286,15 +261,10 @@ async function handleLoginLogoUpload({ file }: { file: File }) {
                 />
               </NSpace>
             </NFormItemGi>
-            
+
             <NFormItemGi :span="1" label="网站图标">
               <NSpace vertical :size="8">
-                <NUpload
-                  :max="1"
-                  accept="image/*"
-                  :before-upload="beforeUpload"
-                  @change="handleSiteFaviconUpload"
-                >
+                <NUpload :max="1" accept="image/*" :before-upload="beforeUpload" @change="handleSiteFaviconUpload">
                   <NButton>选择图片</NButton>
                 </NUpload>
                 <NImage
@@ -307,15 +277,10 @@ async function handleLoginLogoUpload({ file }: { file: File }) {
                 />
               </NSpace>
             </NFormItemGi>
-            
+
             <NFormItemGi :span="2" label="登录页LOGO">
               <NSpace vertical :size="8">
-                <NUpload
-                  :max="1"
-                  accept="image/*"
-                  :before-upload="beforeUpload"
-                  @change="handleLoginLogoUpload"
-                >
+                <NUpload :max="1" accept="image/*" :before-upload="beforeUpload" @change="handleLoginLogoUpload">
                   <NButton>选择图片</NButton>
                 </NUpload>
                 <NImage
@@ -328,24 +293,20 @@ async function handleLoginLogoUpload({ file }: { file: File }) {
                 />
               </NSpace>
             </NFormItemGi>
-            
+
             <NFormItemGi label="站长QQ" path="adminQQ">
               <NInput v-model:value="model.adminQQ" placeholder="请输入站长QQ" />
             </NFormItemGi>
-            
+
             <NFormItemGi label="QQ群链接" path="qqGroupLink">
               <NInput v-model:value="model.qqGroupLink" placeholder="请输入QQ群链接" />
             </NFormItemGi>
           </NGrid>
-          
+
           <NFormItem :show-label="false" class="mt-16px">
             <NSpace :size="12">
-              <NButton type="primary" :loading="saving" @click="handleSubmit">
-                保存设置
-              </NButton>
-              <NButton @click="loadSettings">
-                重置
-              </NButton>
+              <NButton type="primary" :loading="saving" @click="handleSubmit">保存设置</NButton>
+              <NButton @click="loadSettings">重置</NButton>
             </NSpace>
           </NFormItem>
         </NForm>

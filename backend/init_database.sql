@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(100) NOT NULL UNIQUE COMMENT '邮箱',
   password VARCHAR(255) NOT NULL COMMENT '加密密码',
   is_active TINYINT(1) DEFAULT 0 COMMENT '是否激活 (0:未激活, 1:已激活)',
+  is_banned TINYINT(1) DEFAULT 0 COMMENT '是否封禁 (0:未封禁, 1:已封禁)',
+  ban_reason TEXT NULL COMMENT '封禁原因',
   activation_token VARCHAR(255) NULL COMMENT '激活令牌',
   activation_token_expires DATETIME NULL COMMENT '激活令牌过期时间',
   role ENUM('user', 'admin') DEFAULT 'user' COMMENT '用户角色 (user:普通用户, admin:管理员)',
@@ -20,7 +22,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX idx_email (email),
   INDEX idx_username (username),
-  INDEX idx_activation_token (activation_token)
+  INDEX idx_activation_token (activation_token),
+  INDEX idx_is_banned (is_banned)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- 创建设置表

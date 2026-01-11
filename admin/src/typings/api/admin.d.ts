@@ -55,6 +55,8 @@ declare namespace Api {
       email: string;
       role: string;
       isActive: boolean;
+      isBanned: boolean;
+      banReason: string | null;
       createdAt: string;
       updatedAt: string;
     }
@@ -66,9 +68,17 @@ declare namespace Api {
       pageSize: number;
     }
 
+    interface UpdateUserStatusParams {
+      isActive?: boolean;
+      isBanned?: boolean;
+      banReason?: string;
+    }
+
     interface UpdateUserStatusResult {
-      success: boolean;
-      message: string;
+      userId: string;
+      isActive: boolean;
+      isBanned: boolean;
+      banReason: string | null;
     }
   }
 }

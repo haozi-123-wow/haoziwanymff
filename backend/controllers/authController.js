@@ -445,6 +445,15 @@ const login = async (req, res) => {
       });
     }
 
+    if (user.isBanned) {
+      return res.status(403).json({
+        code: 1002,
+        message: `账户已被封禁，原因：${user.banReason || '未知原因'}`,
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       throw new Error('服务器未配置 JWT_SECRET');
@@ -548,6 +557,15 @@ const loginWithEmailCode = async (req, res) => {
       return res.status(401).json({
         code: 1003,
         message: '账户未激活，请检查邮箱并激活账户',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (user.isBanned) {
+      return res.status(403).json({
+        code: 1002,
+        message: `账户已被封禁，原因：${user.banReason || '未知原因'}`,
         data: null,
         timestamp: Date.now()
       });
@@ -1019,6 +1037,152 @@ const updateEmail = async (req, res) => {
   }
 };
 
+/**
+ * 更改用户资料
+ */
+const updateProfile = async (req, res) => {
+  try {
+    const { username, email, currentPassword } = req.body || {};
+
+    if (!req.user) {
+      return res.status(401).json({
+        code: 1002,
+        message: '请登录后再尝试修改资料',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 至少提供一个需要修改的字段
+    if (!username && !email) {
+      return res.status(400).json({
+        code: 1001,
+        message: '请提供至少一个需要修改的字段',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 如果修改邮箱，必须提供当前密码
+    if (email && !currentPassword) {
+      return res.status(400).json({
+        code: 1001,
+        message: '修改邮箱时必须提供当前密码',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 如果修改邮箱，验证当前密码
+    if (email && currentPassword) {
+      const isPasswordValid = await req.user.comparePassword(currentPassword);
+      if (!isPasswordValid) {
+        return res.status(401).json({
+          code: 1002,
+          message: '当前密码错误',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+    }
+
+    // 检查用户名格式
+    if (username) {
+      const sanitizedUsername = typeof username === 'string' ? username.trim() : '';
+      if (!usernamePattern.test(sanitizedUsername)) {
+        return res.status(400).json({
+          code: 1001,
+          message: '用户名需为3-20位字母、数字或下划线',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+
+      // 检查用户名是否已被使用（排除自己）
+      if (sanitizedUsername !== req.user.username) {
+        const existingUser = await User.findOne({
+          where: {
+            username: sanitizedUsername,
+            id: { [Op.ne]: req.user.id }
+          }
+        });
+
+        if (existingUser) {
+          return res.status(400).json({
+            code: 1004,
+            message: '该用户名已被使用',
+            data: null,
+            timestamp: Date.now()
+          });
+        }
+
+        req.user.username = sanitizedUsername;
+      }
+    }
+
+    // 检查邮箱格式
+    if (email) {
+      const sanitizedEmail = normalizeEmail(email);
+      if (!emailPattern.test(sanitizedEmail)) {
+        return res.status(400).json({
+          code: 1001,
+          message: '请输入合法的邮箱地址',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+
+      // 检查邮箱是否已被使用（排除自己）
+      if (sanitizedEmail !== normalizeEmail(req.user.email)) {
+        const existingUser = await User.findOne({
+          where: {
+            email: sanitizedEmail,
+            id: { [Op.ne]: req.user.id }
+          }
+        });
+
+        if (existingUser) {
+          return res.status(400).json({
+            code: 1004,
+            message: '该邮箱已被注册',
+            data: null,
+            timestamp: Date.now()
+          });
+        }
+
+        req.user.email = sanitizedEmail;
+      }
+    }
+
+    await req.user.save();
+
+    res.json({
+      code: 0,
+      message: '用户资料更新成功',
+      data: {
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        role: req.user.role,
+        isActive: req.user.isActive,
+        isBanned: req.user.isBanned,
+        banReason: req.user.banReason,
+        createdAt: req.user.createdAt,
+        updatedAt: req.user.updatedAt
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('修改用户资料错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
 module.exports = {
   register,
   activateAccount,
@@ -1028,5 +1192,6 @@ module.exports = {
   resetPassword,
   logout,
   getMe,
-  updateEmail
+  updateEmail,
+  updateProfile
 };

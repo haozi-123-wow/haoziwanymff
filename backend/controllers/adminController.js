@@ -469,7 +469,7 @@ const getUsers = async (req, res) => {
 const updateUserStatus = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { isActive } = req.body;
+    const { isActive, isBanned, banReason } = req.body;
 
     const user = await User.findByPk(userId);
     if (!user) {
@@ -481,7 +481,30 @@ const updateUserStatus = async (req, res) => {
       });
     }
 
-    user.isActive = isActive;
+    // 更新激活状态
+    if (isActive !== undefined) {
+      user.isActive = isActive;
+    }
+
+    // 更新封禁状态
+    if (isBanned !== undefined) {
+      user.isBanned = isBanned;
+      // 如果封禁用户，必须有封禁原因
+      if (isBanned === true && !banReason) {
+        return res.status(400).json({
+          code: 1001,
+          message: '封禁用户时必须提供封禁原因',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+    }
+
+    // 更新封禁原因
+    if (banReason !== undefined) {
+      user.banReason = banReason;
+    }
+
     await user.save();
 
     res.json({
@@ -489,7 +512,9 @@ const updateUserStatus = async (req, res) => {
       message: '用户状态更新成功',
       data: {
         userId: user.id,
-        isActive: user.isActive
+        isActive: user.isActive,
+        isBanned: user.isBanned,
+        banReason: user.banReason
       },
       timestamp: Date.now()
     });

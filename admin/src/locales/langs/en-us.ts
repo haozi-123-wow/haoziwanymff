@@ -231,7 +231,9 @@ const local: App.I18n.Schema = {
     home: 'Home',
     'system-settings': 'System Settings',
     'system-settings_basic': 'Basic Settings',
-    'system-settings_email': 'Email Settings'
+    'system-settings_email': 'Email Settings',
+    'user-management': 'User Management',
+    'user-management_list': 'User List'
   },
   page: {
     login: {

@@ -26,6 +26,8 @@ declare module "@elegant-router/types" {
     "system-settings": "/system-settings";
     "system-settings_basic": "/system-settings/basic";
     "system-settings_email": "/system-settings/email";
+    "user-management": "/user-management";
+    "user-management_list": "/user-management/list";
   };
 
   /**
@@ -64,6 +66,7 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "login"
     | "system-settings"
+    | "user-management"
   >;
 
   /**
@@ -88,6 +91,7 @@ declare module "@elegant-router/types" {
     | "home"
     | "system-settings_basic"
     | "system-settings_email"
+    | "user-management_list"
   >;
 
   /**

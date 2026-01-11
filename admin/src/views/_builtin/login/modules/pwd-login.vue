@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { loginModuleRecord } from '@/constants/app';
+import { fetchGetCaptchaConfig, fetchValidateCaptcha } from '@/service/api/captcha';
 import { useAuthStore } from '@/store/modules/auth';
 import { useRouterPush } from '@/hooks/common/router';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
-import { fetchGetCaptchaConfig, fetchValidateCaptcha } from '@/service/api/captcha';
 
 defineOptions({
   name: 'PwdLogin'
@@ -47,7 +47,7 @@ async function initGeetest() {
   try {
     console.log('开始初始化极验...');
     const { data: config, error } = await fetchGetCaptchaConfig();
-    
+
     if (!error && config) {
       console.log('获取极验配置成功:', config);
       geetestId.value = config.captchaId;
@@ -77,7 +77,7 @@ async function initGeetest() {
                     pass_token: result.pass_token,
                     gen_time: result.gen_time
                   });
-                  
+
                   if (!validateError && validateData) {
                     validateToken.value = validateData.validate_token;
                     console.log('验证token已获取');
@@ -116,7 +116,7 @@ async function performLogin() {
 
 async function handleSubmit() {
   await validate();
-  
+
   if (!isGeetestReady.value || !captchaInstance.value) {
     window.$notification?.error({
       title: '错误',
@@ -125,7 +125,7 @@ async function handleSubmit() {
     });
     return;
   }
-  
+
   captchaInstance.value.showCaptcha();
 }
 
@@ -162,7 +162,7 @@ const accounts = computed<Account[]>(() => [
 async function handleAccountLogin(account: Account) {
   model.email = account.email;
   model.password = account.password;
-  
+
   if (!isGeetestReady.value || !captchaInstance.value) {
     window.$notification?.error({
       title: '错误',
@@ -171,7 +171,7 @@ async function handleAccountLogin(account: Account) {
     });
     return;
   }
-  
+
   captchaInstance.value.showCaptcha();
 }
 </script>

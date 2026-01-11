@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { fetchRegister } from '@/service/api/auth';
+import { fetchGetCaptchaConfig, fetchValidateCaptcha } from '@/service/api/captcha';
 import { useRouterPush } from '@/hooks/common/router';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
-import { fetchRegister } from '@/service/api/auth';
-import { fetchGetCaptchaConfig, fetchValidateCaptcha } from '@/service/api/captcha';
 
 defineOptions({
   name: 'Register'
@@ -49,7 +49,7 @@ onMounted(async () => {
 async function initGeetest() {
   try {
     const { data: config, error } = await fetchGetCaptchaConfig();
-    
+
     if (!error && config) {
       loadGeetestScript(() => {
         if ((window as any).initGeetest4) {
@@ -72,7 +72,7 @@ async function initGeetest() {
                     pass_token: result.pass_token,
                     gen_time: result.gen_time
                   });
-                  
+
                   if (!validateError && validateData) {
                     validateToken.value = validateData.validate_token;
                     await performRegister();
@@ -102,7 +102,7 @@ function loadGeetestScript(callback: () => void) {
 
 async function performRegister() {
   const { error } = await fetchRegister(model.username, model.email, model.password, validateToken.value);
-  
+
   if (!error) {
     window.$message?.success($t('page.login.common.validateSuccess'));
   }
@@ -110,7 +110,7 @@ async function performRegister() {
 
 async function handleSubmit() {
   await validate();
-  
+
   if (!isGeetestReady.value || !captchaInstance.value) {
     window.$notification?.error({
       title: '错误',
@@ -119,7 +119,7 @@ async function handleSubmit() {
     });
     return;
   }
-  
+
   captchaInstance.value.showCaptcha();
 }
 </script>

@@ -11,9 +11,9 @@ export function getAuthorization() {
 
 export async function handleExpiredRequest(state: RequestInstanceState) {
   const { resetStore } = useAuthStore();
-  
+
   resetStore();
-  
+
   return false;
 }
 

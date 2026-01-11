@@ -108,5 +108,30 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       }
     ]
+  },
+  {
+    name: 'user-management',
+    path: '/user-management',
+    component: 'layout.base',
+    meta: {
+      title: 'user-management',
+      i18nKey: 'route.user-management',
+      icon: 'mdi:account-group-outline',
+      order: 3,
+      roles: ['admin']
+    },
+    children: [
+      {
+        name: 'user-management_list',
+        path: '/user-management/list',
+        component: 'view.user-management_list',
+        meta: {
+          title: 'user-management_list',
+          i18nKey: 'route.user-management_list',
+          icon: 'mdi:account-multiple',
+          roles: ['admin']
+        }
+      }
+    ]
   }
 ];

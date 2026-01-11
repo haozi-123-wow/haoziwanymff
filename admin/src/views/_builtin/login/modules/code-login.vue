@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { fetchGetCaptchaConfig, fetchValidateCaptcha } from '@/service/api/captcha';
+import { fetchSendEmailCode } from '@/service/api/auth';
 import { useAuthStore } from '@/store/modules/auth';
 import { useRouterPush } from '@/hooks/common/router';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
-import { fetchGetCaptchaConfig, fetchValidateCaptcha } from '@/service/api/captcha';
-import { fetchSendEmailCode } from '@/service/api/auth';
 
 defineOptions({
   name: 'CodeLogin'
@@ -54,7 +54,7 @@ async function initGeetest() {
   try {
     console.log('开始初始化极验...');
     const { data: config, error } = await fetchGetCaptchaConfig();
-    
+
     if (!error && config) {
       console.log('获取极验配置成功:', config);
       geetestId.value = config.captchaId;
@@ -84,7 +84,7 @@ async function initGeetest() {
                     pass_token: result.pass_token,
                     gen_time: result.gen_time
                   });
-                  
+
                   if (!validateError && validateData) {
                     validateToken.value = validateData.validate_token;
                     console.log('验证token已获取，开始发送验证码');
@@ -121,7 +121,7 @@ async function initLoginGeetest() {
   try {
     console.log('开始初始化登录极验...');
     const { data: config, error } = await fetchGetCaptchaConfig();
-    
+
     if (!error && config) {
       console.log('获取登录极验配置成功:', config);
       loadGeetestScript(() => {
@@ -150,7 +150,7 @@ async function initLoginGeetest() {
                     pass_token: result.pass_token,
                     gen_time: result.gen_time
                   });
-                  
+
                   if (!validateError && validateData) {
                     loginValidateToken.value = validateData.validate_token;
                     console.log('登录验证token已获取，开始登录');
@@ -228,7 +228,6 @@ async function sendVerificationCode() {
         clearInterval(timer);
       }
     }, 1000);
-
   } catch (error: any) {
     window.$notification?.error({
       title: '发送失败',
@@ -242,7 +241,7 @@ async function sendVerificationCode() {
 
 async function handleSubmit() {
   await validate();
-  
+
   if (!model.code) {
     window.$notification?.error({
       title: '验证失败',
@@ -292,4 +291,3 @@ async function performLogin() {
     </NSpace>
   </NForm>
 </template>
-
