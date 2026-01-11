@@ -4,7 +4,7 @@ const {
   updateSettings, 
   testEmail, 
   getUsers, 
-  updateUserStatus 
+  updateUser 
 } = require('../controllers/adminController');
 const { uploadFields, handleUploadError } = require('../middleware/upload');
 
@@ -22,7 +22,7 @@ router.post('/test-email', testEmail);
 // 获取用户列表
 router.get('/users', getUsers);
 
-// 更新用户状态
-router.put('/users/:userId/status', updateUserStatus);
+// 更新用户信息（状态和资料）
+router.put('/users/:userId', updateUser);
 
 module.exports = router;

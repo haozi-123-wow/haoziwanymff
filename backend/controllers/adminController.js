@@ -464,12 +464,32 @@ const getUsers = async (req, res) => {
 };
 
 /**
- * 更新用户状态
+ * 更新用户信息（状态和资料）
  */
-const updateUserStatus = async (req, res) => {
+const updateUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { isActive, isBanned, banReason } = req.body;
+    const { isActive, isBanned, banReason, username, email } = req.body;
+
+    // 至少提供一个需要修改的字段
+    if (isActive === undefined && isBanned === undefined && banReason === undefined && !username && !email) {
+      return res.status(400).json({
+        code: 1001,
+        message: '请提供至少一个需要修改的字段',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 不能修改自己的资料
+    if (req.user && req.user.id === userId) {
+      return res.status(400).json({
+        code: 1001,
+        message: '不能修改自己的资料',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
 
     const user = await User.findByPk(userId);
     if (!user) {
@@ -480,6 +500,10 @@ const updateUserStatus = async (req, res) => {
         timestamp: Date.now()
       });
     }
+
+    const usernamePattern = /^[a-zA-Z0-9_]{3,20}$/;
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const normalizeEmail = (email = '') => email.trim().toLowerCase();
 
     // 更新激活状态
     if (isActive !== undefined) {
@@ -505,21 +529,94 @@ const updateUserStatus = async (req, res) => {
       user.banReason = banReason;
     }
 
+    // 检查用户名格式
+    if (username) {
+      const sanitizedUsername = typeof username === 'string' ? username.trim() : '';
+      if (!usernamePattern.test(sanitizedUsername)) {
+        return res.status(400).json({
+          code: 1001,
+          message: '用户名需为3-20位字母、数字或下划线',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+
+      // 检查用户名是否已被使用（排除自己）
+      if (sanitizedUsername !== user.username) {
+        const existingUser = await User.findOne({
+          where: {
+            username: sanitizedUsername,
+            id: { [Op.ne]: user.id }
+          }
+        });
+
+        if (existingUser) {
+          return res.status(400).json({
+            code: 1004,
+            message: '该用户名已被使用',
+            data: null,
+            timestamp: Date.now()
+          });
+        }
+
+        user.username = sanitizedUsername;
+      }
+    }
+
+    // 检查邮箱格式
+    if (email) {
+      const sanitizedEmail = normalizeEmail(email);
+      if (!emailPattern.test(sanitizedEmail)) {
+        return res.status(400).json({
+          code: 1001,
+          message: '请输入合法的邮箱地址',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+
+      // 检查邮箱是否已被使用（排除自己）
+      if (sanitizedEmail !== normalizeEmail(user.email)) {
+        const existingUser = await User.findOne({
+          where: {
+            email: sanitizedEmail,
+            id: { [Op.ne]: user.id }
+          }
+        });
+
+        if (existingUser) {
+          return res.status(400).json({
+            code: 1004,
+            message: '该邮箱已被注册',
+            data: null,
+            timestamp: Date.now()
+          });
+        }
+
+        user.email = sanitizedEmail;
+      }
+    }
+
     await user.save();
 
     res.json({
       code: 0,
-      message: '用户状态更新成功',
+      message: '用户信息更新成功',
       data: {
-        userId: user.id,
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
         isActive: user.isActive,
         isBanned: user.isBanned,
-        banReason: user.banReason
+        banReason: user.banReason,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
       },
       timestamp: Date.now()
     });
   } catch (error) {
-    console.error('更新用户状态错误:', error);
+    console.error('更新用户信息错误:', error);
     res.status(500).json({
       code: 5000,
       message: error.message || '服务器内部错误',
@@ -534,5 +631,5 @@ module.exports = {
   updateSettings,
   testEmail,
   getUsers,
-  updateUserStatus
+  updateUser
 };

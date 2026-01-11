@@ -1001,10 +1001,10 @@ adminQQ: "123456789"
 
 ---
 
-### 4.5 更新用户状态 ✅ 已开发完成
-更新指定用户的状态（激活/禁用/封禁）。
+### 4.5 更新用户信息 ✅ 已开发完成
+更新指定用户的信息（状态、用户名、邮箱等）。
 
-*   **接口地址**: `PUT /api/v1/admin/users/:userId/status`
+*   **接口地址**: `PUT /api/v1/admin/users/:userId`
 *   **是否需要认证**: 是（需要管理员权限）
 *   **请求头 (Headers)**:
     *   `Authorization: Bearer <token>`
@@ -1022,6 +1022,15 @@ adminQQ: "123456789"
 | isActive | boolean | 否 | 是否激活 (0:未激活, 1:已激活) |
 | isBanned | boolean | 否 | 是否封禁 (0:未封禁, 1:已封禁) |
 | banReason | string | 条件必填 | 封禁原因（封禁时必填） |
+| username | string | 否 | 新用户名（3-20位字母、数字或下划线） |
+| email | string | 否 | 新邮箱地址（需符合邮箱格式） |
+
+**注意事项**:
+- 管理员修改用户资料时不需要提供当前密码
+- 用户名不能与现有用户重复（排除被修改的用户）
+- 邮箱不能与现有用户重复（排除被修改的用户）
+- 至少提供一个需要修改的字段
+- 不能修改自己的资料（防止误操作）
 
 *   **请求示例**:
 
@@ -1049,72 +1058,33 @@ adminQQ: "123456789"
 }
 ```
 
-*   **响应示例 (成功)**:
-```json
-{
-  "code": 0,
-  "message": "用户状态更新成功",
-  "data": {
-    "userId": "1002",
-    "isActive": true,
-    "isBanned": false,
-    "banReason": null
-  },
-  "timestamp": 1698765432000
-}
-```
-
----
-
-### 4.6 管理员更改用户资料
-**开发状态**: ⏳ 待开发
-
-管理员可以修改指定用户的个人资料信息（用户名、邮箱等）。
-
-*   **接口地址**: `PATCH /api/v1/admin/users/:userId/profile`
-*   **是否需要认证**: 是（需要管理员权限）
-*   **请求头 (Headers)**:
-    *   `Authorization: Bearer <token>`
-
-*   **路径参数 (URL)**:
-
-| 参数名 | 类型 | 必填 | 描述 |
-| :--- | :--- | :--- | :--- |
-| userId | string | 是 | 用户ID |
-
-*   **请求参数 (Body)**:
-
-| 参数名 | 类型 | 必填 | 描述 |
-| :--- | :--- | :--- | :--- |
-| username | string | 否 | 新用户名（3-20位字母、数字或下划线） |
-| email | string | 否 | 新邮箱地址（需符合邮箱格式） |
-
-**注意事项**:
-- 管理员修改用户资料时不需要提供当前密码
-- 用户名不能与现有用户重复（排除被修改的用户）
-- 邮箱不能与现有用户重复（排除被修改的用户）
-- 至少提供一个需要修改的字段
-- 不能修改自己的资料（防止误操作）
-
-*   **请求示例**:
-
-示例 1: 仅修改用户名
+示例 4: 仅修改用户名
 ```json
 {
   "username": "new_username"
 }
 ```
 
-示例 2: 仅修改邮箱
+示例 5: 仅修改邮箱
 ```json
 {
   "email": "newemail@example.com"
 }
 ```
 
-示例 3: 同时修改用户名和邮箱
+示例 6: 同时修改用户名和邮箱
 ```json
 {
+  "username": "new_username",
+  "email": "newemail@example.com"
+}
+```
+
+示例 7: 同时修改用户状态和资料
+```json
+{
+  "isActive": true,
+  "isBanned": false,
   "username": "new_username",
   "email": "newemail@example.com"
 }
@@ -1124,7 +1094,7 @@ adminQQ: "123456789"
 ```json
 {
   "code": 0,
-  "message": "用户资料更新成功",
+  "message": "用户信息更新成功",
   "data": {
     "id": "1002",
     "username": "new_username",
