@@ -31,8 +31,8 @@ class AliyunDnsService {
 
       // 2. 初始化客户端
       const config = new OpenApi.Config({
-        accessKeyId: setting.access_key_id,
-        accessKeySecret: setting.access_key_secret,
+        accessKeyId: setting.access_key_id || setting.secret_id,
+        accessKeySecret: setting.access_key_secret || setting.secret_key,
       });
       config.endpoint = `alidns.cn-hangzhou.aliyuncs.com`;
       return new Alidns20150109.default(config);

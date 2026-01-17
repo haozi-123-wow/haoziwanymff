@@ -16,13 +16,23 @@ const PlatformSetting = sequelize.define('PlatformSetting', {
   },
   access_key_id: {
     type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'AccessKey ID'
+    allowNull: true,
+    comment: '阿里云 AccessKey ID / 腾讯云 SecretId'
   },
   access_key_secret: {
     type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'AccessKey Secret'
+    allowNull: true,
+    comment: '阿里云 AccessKey Secret / 腾讯云 SecretKey'
+  },
+  secret_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: '腾讯云 SecretId (兼容字段)'
+  },
+  secret_key: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: '腾讯云 SecretKey (兼容字段)'
   },
   is_active: {
     type: DataTypes.BOOLEAN,
