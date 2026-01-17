@@ -1,4 +1,4 @@
-const tencentcloud = require("tencentcloud-sdk-nodejs");
+const tencentcloud = require("tencentcloud-sdk-nodejs-dnspod");
 const DnspodClient = tencentcloud.dnspod.v20210323.Client;
 const { PlatformSetting, Domain } = require('../models');
 
@@ -31,8 +31,8 @@ class TencentDnsService {
       // 2. 初始化客户端
       const clientConfig = {
         credential: {
-          secretId: setting.access_key_id || setting.secret_id,
-          secretKey: setting.access_key_secret || setting.secret_key,
+          secretId: setting.access_key_id,
+          secretKey: setting.access_key_secret,
         },
         region: "", // DNSPod服务不需要region
         profile: {
@@ -174,6 +174,45 @@ class TencentDnsService {
       return result;
     } catch (error) {
       console.error('Tencent DNS ModifyRecord Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取腾讯云账户下的所有域名
+   * @param {string} secretId 腾讯云 SecretId
+   * @param {string} secretKey 腾讯云 SecretKey
+   * @param {number} offset 偏移量
+   * @param {number} limit 每页数量
+   * @returns {Promise<object>}
+   */
+  async describeDomains(secretId, secretKey, offset = 0, limit = 100) {
+    const clientConfig = {
+      credential: {
+        secretId: secretId,
+        secretKey: secretKey,
+      },
+      region: "", // DNSPod服务不需要region
+      profile: {
+        httpProfile: {
+          endpoint: "dnspod.tencentcloudapi.com",
+        },
+      },
+    };
+    const client = new DnspodClient(clientConfig);
+
+    const params = {
+      Offset: offset,
+      Limit: limit,
+    };
+
+    try {
+      console.log('调用腾讯云 DescribeDomainList，参数:', params);
+      const result = await client.DescribeDomainList(params);
+      console.log('腾讯云 DescribeDomainList 返回:', JSON.stringify(result, null, 2));
+      return result;
+    } catch (error) {
+      console.error('Tencent DNS DescribeDomainList Error:', error);
       throw error;
     }
   }

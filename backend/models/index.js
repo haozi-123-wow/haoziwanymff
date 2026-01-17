@@ -28,5 +28,6 @@ module.exports = {
   Captcha,
   PlatformSetting,
   Domain,
+  sequelize,
   syncDatabase
 };

@@ -1160,4 +1160,367 @@ adminQQ: "123456789"
 }
 ```
 
+---
+
+### 4.6 获取云平台配置列表
+**开发状态**:  已完成
+
+获取所有云平台的配置信息（包括阿里云、腾讯云、Cloudflare等）。
+
+*   **接口地址**: `GET /api/v1/admin/platform-settings`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **请求参数**: 无
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "name": "个人阿里云",
+        "platform": "aliyun",
+        "accessKeyId": "LTAI5t***",
+        "isActive": true,
+        "config": {},
+        "createdAt": "2024-01-15T10:00:00.000Z",
+        "updatedAt": "2024-01-15T10:00:00.000Z",
+        "domainCount": 5
+      },
+      {
+        "id": 2,
+        "name": "公司阿里云",
+        "platform": "aliyun",
+        "accessKeyId": "LTAI5t***",
+        "isActive": true,
+        "config": {},
+        "createdAt": "2024-01-16T10:00:00.000Z",
+        "updatedAt": "2024-01-16T10:00:00.000Z",
+        "domainCount": 3
+      },
+      {
+        "id": 3,
+        "name": "腾讯云账号1",
+        "platform": "tencent",
+        "accessKeyId": "AKID***",
+        "isActive": false,
+        "config": {},
+        "createdAt": "2024-01-17T10:00:00.000Z",
+        "updatedAt": "2024-01-17T10:00:00.000Z",
+        "domainCount": 0
+      }
+    ],
+    "total": 3,
+    "page": 1,
+    "pageSize": 10
+  },
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.7 添加云平台配置
+**开发状态**: 已完成
+
+添加新的云平台配置（支持阿里云、腾讯云、Cloudflare）。
+
+*   **接口地址**: `POST /api/v1/admin/platform-settings`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **请求参数 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| name | string | 是 | 配置名称（如：个人阿里云、公司阿里云） |
+| platform | string | 是 | 平台类型：aliyun / tencent / cloudflare |
+| accessKeyId | string | 是 | 密钥ID（阿里云：AccessKey ID，腾讯云：SecretId，Cloudflare：API Token） |
+| accessKeySecret | string | 是 | 密钥（阿里云：AccessKey Secret，腾讯云：SecretKey，Cloudflare：Zone ID） |
+| isActive | boolean | 否 | 是否启用，默认 false |
+
+**注意事项**:
+- 同一平台可以有多个配置（多个账号）
+- `accessKeySecret` 会自动加密存储
+- 返回时不包含完整的 `accessKeySecret` 字段
+
+*   **请求示例**:
+```json
+{
+  "name": "个人阿里云",
+  "platform": "aliyun",
+  "accessKeyId": "LTAI5tYourAccessKeyId",
+  "accessKeySecret": "YourAccessKeySecret",
+  "isActive": true
+}
+```
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "云平台配置添加成功",
+  "data": {
+    "id": 1,
+    "name": "个人阿里云",
+    "platform": "aliyun",
+    "accessKeyId": "LTAI5tYourAccessKeyId",
+    "isActive": true,
+    "createdAt": "2024-01-17T10:00:00.000Z",
+    "updatedAt": "2024-01-17T10:00:00.000Z"
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 平台已存在)**:
+```json
+{
+  "code": 1004,
+  "message": "该平台的配置已存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.8 更新云平台配置
+**开发状态**: ⏳ 待测试
+
+更新指定云平台的配置信息。
+
+*   **接口地址**: `PUT /api/v1/admin/platform-settings/:id`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | 配置ID |
+
+*   **请求参数 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| accessKeyId | string | 否 | 密钥ID |
+| accessKeySecret | string | 否 | 密钥（如需更新则提供） |
+| isActive | boolean | 否 | 是否启用 |
+
+**注意事项**:
+- 至少提供一个需要修改的字段
+
+*   **请求示例**:
+```json
+{
+  "accessKeyId": "LTAI5tNewAccessKeyId",
+  "isActive": true
+}
+```
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "云平台配置更新成功",
+  "data": {
+    "id": 1,
+    "platform": "aliyun",
+    "accessKeyId": "LTAI5tNewAccessKeyId",
+    "isActive": true,
+    "createdAt": "2024-01-17T10:00:00.000Z",
+    "updatedAt": "2024-01-17T11:00:00.000Z"
+  },
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.9 删除云平台配置
+**开发状态**: ⏳ 待测试
+
+删除指定云平台的配置。
+
+*   **接口地址**: `DELETE /api/v1/admin/platform-settings/:id`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | 配置ID |
+
+**注意事项**:
+- 如果配置已被域名使用，则不允许删除
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "云平台配置删除成功",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 配置正在使用中)**:
+```json
+{
+  "code": 1001,
+  "message": "该配置正在被域名使用，无法删除",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.10 启用/禁用云平台配置
+**开发状态**: ⏳ 待测试
+
+快速切换云平台配置的启用状态。
+
+*   **接口地址**: `PATCH /api/v1/admin/platform-settings/:id/status`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | 配置ID |
+
+*   **请求参数 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| isActive | boolean | 是 | 是否启用 |
+
+*   **请求示例**:
+```json
+{
+  "isActive": true
+}
+```
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "云平台配置状态更新成功",
+  "data": {
+    "id": 1,
+    "platform": "aliyun",
+    "isActive": true,
+    "updatedAt": "2024-01-17T11:00:00.000Z"
+  },
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.11 通过云平台配置获取域名列表
+**开发状态**: ⏳ 已完成
+
+获取指定云平台配置关联的所有域名列表。
+
+*   **接口地址**: `GET /api/v1/admin/platform-settings/:id/domains`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | 云平台配置ID |
+
+*   **查询参数 (Query Params)**:
+
+| 参数名 | 类型 | 必填 | 描述 | 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| page | number | 否 | 页码 | 1 |
+| pageSize | number | 否 | 每页数量 | 10 |
+| keyword | string | 否 | 域名搜索关键词 | - |
+
+**注意事项**:
+- 只返回与指定云平台配置ID关联的域名
+- 支持域名模糊搜索
+- 返回数据包含分页信息
+
+*   **请求示例**:
+```
+GET /api/v1/admin/platform-settings/1/domains?page=1&pageSize=10&keyword=example
+```
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "domain": "example.com",
+        "platformId": 1,
+        "isActive": true,
+        "createdAt": "2024-01-15T10:00:00.000Z",
+        "updatedAt": "2024-01-15T10:00:00.000Z"
+      },
+      {
+        "id": 2,
+        "domain": "test.example.com",
+        "platformId": 1,
+        "isActive": true,
+        "createdAt": "2024-01-16T10:00:00.000Z",
+        "updatedAt": "2024-01-16T10:00:00.000Z"
+      }
+    ],
+    "total": 2,
+    "page": 1,
+    "pageSize": 10
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 配置不存在)**:
+```json
+{
+  "code": 1005,
+  "message": "云平台配置不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 没有关联域名)**:
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [],
+    "total": 0,
+    "page": 1,
+    "pageSize": 10
+  },
+  "timestamp": 1698765432000
+}
+```
+
 </file>

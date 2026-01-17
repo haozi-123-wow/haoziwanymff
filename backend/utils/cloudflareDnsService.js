@@ -30,8 +30,8 @@ class CloudflareDnsService {
       // 2. 返回Cloudflare配置
       // Cloudflare使用 access_key_id 作为 API Token，access_key_secret 作为 Zone ID
       return {
-        apiToken: setting.access_key_id || setting.api_token,
-        zoneId: setting.access_key_secret || setting.zone_id
+        apiToken: setting.access_key_id,
+        zoneId: setting.access_key_secret
       };
     } catch (error) {
       console.error(`Failed to get Cloudflare config for domain ${domainName}:`, error);
@@ -209,6 +209,37 @@ class CloudflareDnsService {
       return response.data;
     } catch (error) {
       console.error('Cloudflare ModifyRecord Error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取Cloudflare账户下的所有域名
+   * @param {string} apiToken Cloudflare API Token
+   * @param {number} page 页码
+   * @param {number} perPage 每页数量
+   * @returns {Promise<object>}
+   */
+  async listZones(apiToken, page = 1, perPage = 100) {
+    try {
+      console.log('调用 Cloudflare listZones，page:', page, 'perPage:', perPage);
+      const response = await axios.get(
+        'https://api.cloudflare.com/client/v4/zones',
+        {
+          headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+          },
+          params: {
+            page: page,
+            per_page: perPage
+          }
+        }
+      );
+      console.log('Cloudflare listZones 返回:', JSON.stringify(response.data, null, 2));
+      return response.data;
+    } catch (error) {
+      console.error('Cloudflare ListZones Error:', error.response?.data || error.message);
       throw error;
     }
   }

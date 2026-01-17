@@ -1,4 +1,4 @@
-const { User, Setting } = require('../models');
+const { User, Setting, PlatformSetting, Domain, sequelize } = require('../models');
 const { sendTestEmail } = require('../utils/emailService');
 const { verifyValidateToken } = require('../utils/geetestService');
 const { getUploadedFiles } = require('../middleware/upload');
@@ -626,10 +626,514 @@ const updateUser = async (req, res) => {
   }
 };
 
+/**
+ * 获取云平台配置列表
+ */
+const getPlatformSettings = async (req, res) => {
+  try {
+    const { platform, isActive, page = 1, pageSize = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+
+    // 构建查询条件
+    const whereCondition = {};
+    if (platform) {
+      whereCondition.platform = platform;
+    }
+    if (isActive !== undefined) {
+      whereCondition.is_active = isActive === 'true';
+    }
+
+    const offset = (page - 1) * pageSize;
+    const limit = parseInt(pageSize);
+
+    // 验证排序字段
+    const allowedSortFields = ['createdAt', 'updatedAt', 'platform', 'name'];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+    // 映射排序字段（从 camelCase 到 snake_case）
+    const sortFieldMap = {
+      'createdAt': 'created_at',
+      'updatedAt': 'updated_at',
+      'platform': 'platform',
+      'name': 'name'
+    };
+    const dbSortField = sortFieldMap[sortField] || 'created_at';
+
+    const { count, rows } = await PlatformSetting.findAndCountAll({
+      where: whereCondition,
+      attributes: [
+        'id',
+        'name',
+        'platform',
+        'access_key_id',
+        'is_active',
+        'config',
+        'created_at',
+        'updated_at'
+      ], // 明确指定要返回的字段，排除敏感字段
+      offset,
+      limit,
+      order: [[dbSortField, sortDirection]]
+    });
+
+    // 为每个配置添加域名数量统计
+    const platformIds = rows.map(p => p.id);
+    const domainCounts = await Domain.findAll({
+      attributes: ['platform_id', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+      where: { platform_id: platformIds },
+      group: ['platform_id'],
+      raw: true
+    });
+
+    // 将域名数量映射到配置列表
+    const domainCountMap = {};
+    domainCounts.forEach(item => {
+      domainCountMap[item.platform_id] = item.count;
+    });
+
+    // 转换字段名并添加脱敏信息
+    const processedRows = rows.map(setting => {
+      const settingData = setting.toJSON();
+
+      // 将 snake_case 转换为 camelCase
+      const camelCaseData = {
+        id: settingData.id,
+        name: settingData.name,
+        platform: settingData.platform,
+        accessKeyId: settingData.access_key_id ? settingData.access_key_id.substring(0, 8) + '***' : null,
+        isActive: settingData.is_active,
+        config: settingData.config,
+        createdAt: settingData.created_at,
+        updatedAt: settingData.updated_at,
+        domainCount: domainCountMap[settingData.id] || 0
+      };
+
+      return camelCaseData;
+    });
+
+    res.json({
+      code: 0,
+      message: 'success',
+      data: {
+        list: processedRows,
+        total: count,
+        page: parseInt(page),
+        pageSize: limit
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('获取云平台配置列表错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 添加云平台配置
+ */
+const addPlatformSetting = async (req, res) => {
+  try {
+    const { name, platform, accessKeyId, accessKeySecret, isActive = false } = req.body;
+
+    // 验证必填字段
+    if (!name) {
+      return res.status(400).json({
+        code: 1001,
+        message: '请提供配置名称',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (!platform) {
+      return res.status(400).json({
+        code: 1001,
+        message: '请选择平台类型',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 验证平台类型
+    const allowedPlatforms = ['aliyun', 'tencent', 'cloudflare'];
+    if (!allowedPlatforms.includes(platform)) {
+      return res.status(400).json({
+        code: 1001,
+        message: '不支持的平台类型',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (!accessKeyId) {
+      return res.status(400).json({
+        code: 1001,
+        message: '请提供密钥ID',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (!accessKeySecret) {
+      return res.status(400).json({
+        code: 1001,
+        message: '请提供密钥',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 创建配置
+    const setting = await PlatformSetting.create({
+      name,
+      platform,
+      access_key_id: accessKeyId,
+      access_key_secret: accessKeySecret,
+      is_active: isActive
+    });
+
+    res.json({
+      code: 0,
+      message: '云平台配置添加成功',
+      data: {
+        id: setting.id,
+        name: setting.name,
+        platform: setting.platform,
+        accessKeyId: setting.access_key_id.substring(0, 8) + '***',
+        isActive: setting.is_active,
+        createdAt: setting.created_at,
+        updatedAt: setting.updated_at
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('添加云平台配置错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 更新云平台配置
+ */
+const updatePlatformSetting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, accessKeyId, accessKeySecret, isActive } = req.body;
+
+    // 验证是否至少提供一个字段
+    if (name === undefined && accessKeyId === undefined && accessKeySecret === undefined && isActive === undefined) {
+      return res.status(400).json({
+        code: 1001,
+        message: '请提供至少一个需要修改的字段',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const setting = await PlatformSetting.findByPk(id);
+    if (!setting) {
+      return res.status(404).json({
+        code: 1005,
+        message: '云平台配置不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 更新字段
+    if (name !== undefined) {
+      setting.name = name;
+    }
+    if (accessKeyId !== undefined) {
+      setting.access_key_id = accessKeyId;
+    }
+    if (accessKeySecret !== undefined) {
+      setting.access_key_secret = accessKeySecret;
+    }
+    if (isActive !== undefined) {
+      setting.is_active = isActive;
+    }
+
+    await setting.save();
+
+    res.json({
+      code: 0,
+      message: '云平台配置更新成功',
+      data: {
+        id: setting.id,
+        name: setting.name,
+        platform: setting.platform,
+        accessKeyId: setting.access_key_id.substring(0, 8) + '***',
+        isActive: setting.is_active,
+        createdAt: setting.created_at,
+        updatedAt: setting.updated_at
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('更新云平台配置错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 删除云平台配置
+ */
+const deletePlatformSetting = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const setting = await PlatformSetting.findByPk(id);
+    if (!setting) {
+      return res.status(404).json({
+        code: 1005,
+        message: '云平台配置不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 检查是否有域名正在使用该配置
+    const domainCount = await Domain.count({
+      where: { platform_id: id }
+    });
+
+    if (domainCount > 0) {
+      return res.status(400).json({
+        code: 1001,
+        message: '该配置正在被域名使用，无法删除',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    await setting.destroy();
+
+    res.json({
+      code: 0,
+      message: '云平台配置删除成功',
+      data: null,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('删除云平台配置错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 启用/禁用云平台配置
+ */
+const updatePlatformSettingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    if (isActive === undefined) {
+      return res.status(400).json({
+        code: 1001,
+        message: '请提供 isActive 参数',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const setting = await PlatformSetting.findByPk(id);
+    if (!setting) {
+      return res.status(404).json({
+        code: 1005,
+        message: '云平台配置不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    setting.is_active = isActive;
+    await setting.save();
+
+    res.json({
+      code: 0,
+      message: '云平台配置状态更新成功',
+      data: {
+        id: setting.id,
+        name: setting.name,
+        platform: setting.platform,
+        isActive: setting.is_active,
+        updatedAt: setting.updated_at
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('更新云平台配置状态错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 通过云平台配置获取域名列表
+ */
+const getDomainsByPlatformSetting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, pageSize = 10, keyword = '' } = req.query;
+
+    console.log('获取域名列表 - 平台配置ID:', id, '平台:', id, 'page:', page, 'pageSize:', pageSize);
+
+    // 验证平台配置是否存在
+    const platformSetting = await PlatformSetting.findByPk(id);
+    if (!platformSetting) {
+      return res.status(404).json({
+        code: 1005,
+        message: '云平台配置不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const { platform, access_key_id, access_key_secret } = platformSetting;
+    console.log('平台类型:', platform, 'accessKeyId前8位:', access_key_id?.substring(0, 8));
+
+    let formattedList = [];
+    let total = 0;
+
+    // 根据平台类型调用对应的DNS服务
+    switch (platform) {
+      case 'aliyun': {
+        const aliyunDnsService = require('../utils/aliyunDnsService');
+        const aliyunResult = await aliyunDnsService.describeDomains(
+          access_key_id,
+          access_key_secret,
+          parseInt(page),
+          parseInt(pageSize)
+        );
+        console.log('阿里云返回结果:', JSON.stringify(aliyunResult, null, 2));
+        const domains = aliyunResult.domains?.domain || [];
+        total = aliyunResult.totalCount || 0;
+        formattedList = domains.map(domain => ({
+          domainId: domain.domainId,
+          domain: domain.domainName,
+          domainName: domain.domainName,
+          status: domain.Status || ''
+        }));
+        break;
+      }
+
+      case 'tencent': {
+        const tencentDnsService = require('../utils/tencentDnsService');
+        const tencentResult = await tencentDnsService.describeDomains(
+          access_key_id,
+          access_key_secret,
+          (parseInt(page) - 1) * parseInt(pageSize),
+          parseInt(pageSize)
+        );
+        console.log('腾讯云返回结果:', JSON.stringify(tencentResult, null, 2));
+        const domains = tencentResult.DomainList || [];
+        total = tencentResult.DomainCountInfo?.DomainTotal || 0;
+        formattedList = domains.map(domain => ({
+          domainId: domain.DomainId,
+          domain: domain.Name,
+          domainName: domain.Name,
+          status: domain.Status
+        }));
+        break;
+      }
+
+      case 'cloudflare': {
+        const cloudflareDnsService = require('../utils/cloudflareDnsService');
+        const cloudflareResult = await cloudflareDnsService.listZones(
+          access_key_id,
+          parseInt(page),
+          parseInt(pageSize)
+        );
+        console.log('Cloudflare返回结果:', JSON.stringify(cloudflareResult, null, 2));
+        const domains = cloudflareResult.result || [];
+        total = cloudflareResult.result_info?.total_count || 0;
+        formattedList = domains.map(zone => ({
+          domainId: zone.id,
+          domain: zone.name,
+          domainName: zone.name,
+          status: zone.status
+        }));
+        break;
+      }
+
+      default:
+        return res.status(400).json({
+          code: 1001,
+          message: '不支持的平台类型',
+          data: null,
+          timestamp: Date.now()
+        });
+    }
+
+    console.log('格式化后的域名列表:', formattedList.length, '条, 总数:', total);
+
+    // 关键词搜索过滤（仅对已获取的结果过滤）
+    if (keyword) {
+      formattedList = formattedList.filter(item =>
+        item.domain.toLowerCase().includes(keyword.toLowerCase())
+      );
+      total = formattedList.length;
+    }
+
+    res.json({
+      code: 0,
+      message: 'success',
+      data: {
+        list: formattedList,
+        total: total,
+        page: parseInt(page),
+        pageSize: parseInt(pageSize)
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('获取平台配置域名列表错误:', error);
+    console.error('错误堆栈:', error.stack);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
 module.exports = {
   getSettings,
   updateSettings,
   testEmail,
   getUsers,
-  updateUser
+  updateUser,
+  getPlatformSettings,
+  addPlatformSetting,
+  updatePlatformSetting,
+  deletePlatformSetting,
+  updatePlatformSettingStatus,
+  getDomainsByPlatformSetting
 };

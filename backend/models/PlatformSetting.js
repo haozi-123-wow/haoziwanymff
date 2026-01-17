@@ -8,41 +8,25 @@ const PlatformSetting = sequelize.define('PlatformSetting', {
     autoIncrement: true,
     comment: '主键ID'
   },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    comment: '配置名称 (如: 个人阿里云、公司阿里云)'
+  },
   platform: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
-    comment: '平台名称 (如: aliyun, tencent)'
+    comment: '平台类型 (如: aliyun, tencent, cloudflare)'
   },
   access_key_id: {
     type: DataTypes.STRING,
     allowNull: true,
-    comment: '阿里云 AccessKey ID / 腾讯云 SecretId'
+    comment: '阿里云 AccessKey ID / 腾讯云 SecretId / Cloudflare API Token'
   },
   access_key_secret: {
     type: DataTypes.STRING,
     allowNull: true,
-    comment: '阿里云 AccessKey Secret / 腾讯云 SecretKey'
-  },
-  secret_id: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: '腾讯云 SecretId (兼容字段)'
-  },
-  secret_key: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: '腾讯云 SecretKey (兼容字段)'
-  },
-  api_token: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Cloudflare API Token (兼容字段，推荐使用 access_key_id)'
-  },
-  zone_id: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Cloudflare Zone ID (兼容字段，推荐使用 access_key_secret)'
+    comment: '阿里云 AccessKey Secret / 腾讯云 SecretKey / Cloudflare Zone ID'
   },
   is_active: {
     type: DataTypes.BOOLEAN,

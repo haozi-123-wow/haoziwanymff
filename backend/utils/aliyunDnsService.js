@@ -31,8 +31,8 @@ class AliyunDnsService {
 
       // 2. 初始化客户端
       const config = new OpenApi.Config({
-        accessKeyId: setting.access_key_id || setting.secret_id,
-        accessKeySecret: setting.access_key_secret || setting.secret_key,
+        accessKeyId: setting.access_key_id,
+        accessKeySecret: setting.access_key_secret,
       });
       config.endpoint = `alidns.cn-hangzhou.aliyuncs.com`;
       return new Alidns20150109.default(config);
@@ -140,6 +140,39 @@ class AliyunDnsService {
       return result.body;
     } catch (error) {
       console.error('Aliyun DNS DescribeDomainRecords Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取阿里云账户下的所有域名
+   * @param {string} accessKeyId 阿里云 AccessKeyId
+   * @param {string} accessKeySecret 阿里云 AccessKeySecret
+   * @param {number} pageNumber 页码
+   * @param {number} pageSize 每页数量
+   * @returns {Promise<object>}
+   */
+  async describeDomains(accessKeyId, accessKeySecret, pageNumber = 1, pageSize = 100) {
+    const config = new OpenApi.Config({
+      accessKeyId: accessKeyId,
+      accessKeySecret: accessKeySecret,
+    });
+    config.endpoint = `alidns.cn-hangzhou.aliyuncs.com`;
+    const client = new Alidns20150109.default(config);
+
+    const describeDomainsRequest = new Alidns20150109.DescribeDomainsRequest({
+      pageNumber: pageNumber,
+      pageSize: pageSize
+    });
+
+    const runtime = new Util.RuntimeOptions({});
+    try {
+      console.log('调用阿里云 DescribeDomains，参数:', { pageNumber, pageSize });
+      const result = await client.describeDomainsWithOptions(describeDomainsRequest, runtime);
+      console.log('阿里云 DescribeDomains 返回:', JSON.stringify(result.body, null, 2));
+      return result.body;
+    } catch (error) {
+      console.error('Aliyun DNS DescribeDomains Error:', error);
       throw error;
     }
   }

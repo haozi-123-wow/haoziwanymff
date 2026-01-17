@@ -1,10 +1,16 @@
 const express = require('express');
-const { 
-  getSettings, 
-  updateSettings, 
-  testEmail, 
-  getUsers, 
-  updateUser 
+const {
+  getSettings,
+  updateSettings,
+  testEmail,
+  getUsers,
+  updateUser,
+  getPlatformSettings,
+  addPlatformSetting,
+  updatePlatformSetting,
+  deletePlatformSetting,
+  updatePlatformSettingStatus,
+  getDomainsByPlatformSetting
 } = require('../controllers/adminController');
 const { uploadFields, handleUploadError } = require('../middleware/upload');
 
@@ -24,5 +30,25 @@ router.get('/users', getUsers);
 
 // 更新用户信息（状态和资料）
 router.put('/users/:userId', updateUser);
+
+// ==================== 云平台配置管理 ====================
+
+// 获取云平台配置列表
+router.get('/platform-settings', getPlatformSettings);
+
+// 添加云平台配置
+router.post('/platform-settings', addPlatformSetting);
+
+// 更新云平台配置
+router.put('/platform-settings/:id', updatePlatformSetting);
+
+// 删除云平台配置
+router.delete('/platform-settings/:id', deletePlatformSetting);
+
+// 启用/禁用云平台配置
+router.patch('/platform-settings/:id/status', updatePlatformSettingStatus);
+
+// 通过云平台配置获取域名列表
+router.get('/platform-settings/:id/domains', getDomainsByPlatformSetting);
 
 module.exports = router;
