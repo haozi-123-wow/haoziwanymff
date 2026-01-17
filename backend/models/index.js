@@ -4,9 +4,13 @@ const { sequelize } = require('../config/db');
 const User = require('./User');
 const Setting = require('./Setting');
 const Captcha = require('./Captcha');
+const PlatformSetting = require('./PlatformSetting');
+const Domain = require('./Domain');
 
 // 关联关系定义
-// User和Setting之间没有直接关联
+// PlatformSetting 和 Domain 是一对多关系
+PlatformSetting.hasMany(Domain, { foreignKey: 'platform_id' });
+Domain.belongsTo(PlatformSetting, { foreignKey: 'platform_id' });
 
 // 同步数据库
 const syncDatabase = async () => {
@@ -22,5 +26,7 @@ module.exports = {
   User,
   Setting,
   Captcha,
+  PlatformSetting,
+  Domain,
   syncDatabase
 };
