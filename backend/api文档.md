@@ -1523,4 +1523,183 @@ GET /api/v1/admin/platform-settings/1/domains?page=1&pageSize=10&keyword=example
 }
 ```
 
+---
+
+### 4.12 添加域名
+**开发状态**: ⏳ 待测试
+
+将从云平台 API 获取的域名添加到本地数据库，关联到指定的云平台配置。
+
+*   **接口地址**: `POST /api/v1/admin/domains`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **请求体 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| domain | string | 是 | 域名（如: example.com） |
+| platformId | number | 是 | 云平台配置ID |
+| remarks | string | 否 | 备注说明 |
+| isPublic | boolean | 否 | 是否公开（允许用户注册），默认 true |
+
+*   **请求示例**:
+```json
+{
+  "domain": "example.com",
+  "platformId": 3,
+  "remarks": "我的主域名",
+  "isPublic": true
+}
+```
+
+**注意事项**:
+- 域名必须已存在于对应的云平台配置中
+- 同一个域名不能重复添加到不同的平台配置
+- 添加成功后，该域名将可以用于二级域名分发
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "域名添加成功",
+  "data": {
+    "id": 1,
+    "domain": "example.com",
+    "platformId": 3,
+    "isActive": true,
+    "isPublic": true,
+    "remarks": "我的主域名",
+    "createdAt": "2024-01-17T10:00:00.000Z",
+    "updatedAt": "2024-01-17T10:00:00.000Z"
+  },
+  "timestamp": 1698765432000 
+}
+```
+
+*   **响应示例 (失败 - 域名已存在)**:
+```json
+{
+  "code": 1004,
+  "message": "该域名已存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 云平台配置不存在)**:
+```json
+{
+  "code": 1005,
+  "message": "云平台配置不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 域名不在云平台中)**:
+```json
+{
+  "code": 1001,
+  "message": "该域名在云平台配置中不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.13 获取域名解析记录列表
+**开发状态**: ⏳ 待开发
+
+获取指定主域名的所有 DNS 解析记录列表。
+
+*   **接口地址**: `GET /api/v1/admin/domains/:domainId/records`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| domainId | number | 是 | 域名ID（在本地数据库中的ID） |
+
+*   **查询参数 (Query Params)**:
+
+| 参数名 | 类型 | 必填 | 描述 | 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| page | number | 否 | 页码 | 1 |
+| pageSize | number | 否 | 每页数量 | 20 |
+| type | string | 否 | 记录类型筛选（如: A, CNAME, TXT, MX） | - |
+| keyword | string | 否 | 子域名搜索关键词 | - |
+
+*   **请求示例**:
+```
+GET /api/v1/admin/domains/1/records?page=1&pageSize=20&type=A
+```
+
+**注意事项**:
+- 记录类型支持：A、AAAA、CNAME、MX、TXT、NS、SRV 等
+- 返回的记录来自云平台 API 实时获取
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "recordId": "12345678",
+        "rr": "@",
+        "type": "A",
+        "value": "1.2.3.4",
+        "ttl": 600,
+        "line": "默认",
+        "weight": 1,
+        "status": "ENABLE",
+        "updatedAt": "2024-01-17T10:00:00.000Z"
+      },
+      {
+        "recordId": "12345679",
+        "rr": "www",
+        "type": "CNAME",
+        "value": "example.com",
+        "ttl": 600,
+        "line": "默认",
+        "weight": 1,
+        "status": "ENABLE",
+        "updatedAt": "2024-01-17T10:00:00.000Z"
+      }
+    ],
+    "total": 2,
+    "page": 1,
+    "pageSize": 20
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 域名不存在)**:
+```json
+{
+  "code": 1005,
+  "message": "域名不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 云平台配置错误)**:
+```json
+{
+  "code": 5000,
+  "message": "获取解析记录失败：云平台API错误",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
 </file>

@@ -10,7 +10,9 @@ const {
   updatePlatformSetting,
   deletePlatformSetting,
   updatePlatformSettingStatus,
-  getDomainsByPlatformSetting
+  getDomainsByPlatformSetting,
+  addDomain,
+  getDomainRecords
 } = require('../controllers/adminController');
 const { uploadFields, handleUploadError } = require('../middleware/upload');
 
@@ -50,5 +52,13 @@ router.patch('/platform-settings/:id/status', updatePlatformSettingStatus);
 
 // 通过云平台配置获取域名列表
 router.get('/platform-settings/:id/domains', getDomainsByPlatformSetting);
+
+// ==================== 域名管理 ====================
+
+// 添加域名
+router.post('/domains', addDomain);
+
+// 获取域名解析记录列表
+router.get('/domains/:domainId/records', getDomainRecords);
 
 module.exports = router;

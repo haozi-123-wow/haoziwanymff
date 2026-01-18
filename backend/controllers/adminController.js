@@ -1124,6 +1124,352 @@ const getDomainsByPlatformSetting = async (req, res) => {
   }
 };
 
+/**
+ * 添加域名
+ */
+const addDomain = async (req, res) => {
+  try {
+    const { domain, platformId, remarks, isPublic = true } = req.body;
+
+    // 参数验证
+    if (!domain || !platformId) {
+      return res.status(400).json({
+        code: 1001,
+        message: '域名和云平台配置ID不能为空',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 域名格式验证
+    const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    if (!domainRegex.test(domain)) {
+      return res.status(400).json({
+        code: 1001,
+        message: '域名格式不正确',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 验证平台配置是否存在
+    const platformSetting = await PlatformSetting.findByPk(platformId);
+    if (!platformSetting) {
+      return res.status(404).json({
+        code: 1005,
+        message: '云平台配置不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 检查域名是否已存在
+    const existingDomain = await Domain.findOne({
+      where: { domain: domain }
+    });
+    if (existingDomain) {
+      return res.status(400).json({
+        code: 1004,
+        message: '该域名已存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 验证域名是否在云平台中
+    const { platform, access_key_id, access_key_secret } = platformSetting;
+    let domainExistsInCloud = false;
+
+    switch (platform) {
+      case 'aliyun': {
+        const aliyunDnsService = require('../utils/aliyunDnsService');
+        const aliyunResult = await aliyunDnsService.describeDomains(
+          access_key_id,
+          access_key_secret,
+          1,
+          100
+        );
+        const domains = aliyunResult.domains?.domain || [];
+        domainExistsInCloud = domains.some(d => d.domainName === domain);
+        break;
+      }
+
+      case 'tencent': {
+        const tencentDnsService = require('../utils/tencentDnsService');
+        const tencentResult = await tencentDnsService.describeDomains(
+          access_key_id,
+          access_key_secret,
+          0,
+          100
+        );
+        const domains = tencentResult.DomainList || [];
+        domainExistsInCloud = domains.some(d => d.Name === domain);
+        break;
+      }
+
+      case 'cloudflare': {
+        const cloudflareDnsService = require('../utils/cloudflareDnsService');
+        const cloudflareResult = await cloudflareDnsService.listZones(
+          access_key_id,
+          1,
+          100
+        );
+        const domains = cloudflareResult.result || [];
+        domainExistsInCloud = domains.some(d => d.name === domain);
+        break;
+      }
+
+      default:
+        return res.status(400).json({
+          code: 1001,
+          message: '不支持的平台类型',
+          data: null,
+          timestamp: Date.now()
+        });
+    }
+
+    if (!domainExistsInCloud) {
+      return res.status(400).json({
+        code: 1001,
+        message: '该域名在云平台配置中不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 创建域名记录
+    const newDomain = await Domain.create({
+      domain: domain,
+      platform_id: platformId,
+      is_active: true,
+      is_public: isPublic,
+      remarks: remarks || ''
+    });
+
+    res.json({
+      code: 0,
+      message: '域名添加成功',
+      data: {
+        id: newDomain.id,
+        domain: newDomain.domain,
+        platformId: newDomain.platform_id,
+        isActive: newDomain.is_active,
+        isPublic: newDomain.is_public,
+        remarks: newDomain.remarks,
+        createdAt: newDomain.created_at,
+        updatedAt: newDomain.updated_at
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('添加域名错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 获取域名解析记录列表
+ */
+const getDomainRecords = async (req, res) => {
+  try {
+    const { domainId } = req.params;
+    const { page = 1, pageSize = 20, type, keyword } = req.query;
+
+    console.log('=== getDomainRecords 被调用 ===');
+    console.log('domainId:', domainId, 'page:', page, 'pageSize:', pageSize, 'type:', type, 'keyword:', keyword);
+
+    // 验证域名是否存在
+    const domainRecord = await Domain.findOne({
+      where: { id: domainId },
+      include: [{
+        model: PlatformSetting
+      }]
+    });
+
+    console.log('查询到的 domainRecord:', domainRecord?.id, domainRecord?.domain);
+    console.log('关联的 PlatformSetting:', domainRecord?.PlatformSetting?.id, domainRecord?.PlatformSetting?.platform);
+
+    if (!domainRecord) {
+      return res.status(404).json({
+        code: 1005,
+        message: '域名不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const platformSetting = domainRecord.PlatformSetting;
+
+    if (!platformSetting) {
+      return res.status(400).json({
+        code: 1001,
+        message: '该域名未关联云平台配置',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const { platform } = platformSetting;
+    const domainName = domainRecord.domain;
+    console.log('平台类型:', platform, '域名:', domainName);
+
+    let records = [];
+    let total = 0;
+
+    // 根据平台类型调用对应的DNS服务
+    console.log('准备调用 DNS 服务，平台类型:', platform);
+    switch (platform) {
+      case 'aliyun': {
+        console.log('调用阿里云 describeDomainRecords');
+        const aliyunDnsService = require('../utils/aliyunDnsService');
+        const aliyunResult = await aliyunDnsService.describeDomainRecords(
+          domainName,
+          parseInt(page),
+          parseInt(pageSize)
+        );
+        console.log('阿里云返回:', JSON.stringify(aliyunResult, null, 2));
+        records = aliyunResult.domainRecords?.record || [];
+
+        // 根据记录类型筛选
+        if (type) {
+          records = records.filter(r => r.type === type);
+        }
+
+        // 根据关键词搜索
+        if (keyword) {
+          records = records.filter(r =>
+            r.rR.toLowerCase().includes(keyword.toLowerCase())
+          );
+        }
+
+        total = aliyunResult.totalCount || aliyunResult.total || records.length;
+        records = records.map(r => ({
+          recordId: r.recordId,
+          rr: r.RR,
+          type: r.type,
+          value: r.value,
+          ttl: r.tTL,
+          line: r.line,
+          weight: r.weight,
+          status: r.status,
+          updatedAt: r.updateTimestamp
+        }));
+        break;
+      }
+
+      case 'tencent': {
+        const tencentDnsService = require('../utils/tencentDnsService');
+        const tencentResult = await tencentDnsService.describeDomainRecords(
+          domainName,
+          (parseInt(page) - 1) * parseInt(pageSize),
+          parseInt(pageSize)
+        );
+        console.log('tencentResult:', JSON.stringify(tencentResult, null, 2));
+
+        // 腾讯云可能直接返回数据，也可能包装在 Response 中
+        const responseData = tencentResult.Response || tencentResult;
+        records = responseData.RecordList || [];
+
+        // 根据记录类型筛选
+        if (type) {
+          records = records.filter(r => r.Type === type);
+        }
+
+        // 根据关键词搜索
+        if (keyword) {
+          records = records.filter(r =>
+            r.Name.toLowerCase().includes(keyword.toLowerCase())
+          );
+        }
+
+        total = responseData.TotalCount || records.length;
+        records = records.map(r => ({
+          recordId: r.RecordId,
+          rr: r.Name,
+          type: r.Type,
+          value: r.Value,
+          ttl: r.TTL,
+          line: r.Line,
+          weight: r.Weight,
+          status: r.Status,
+          updatedAt: r.UpdatedOn
+        }));
+        break;
+      }
+
+      case 'cloudflare': {
+        const cloudflareDnsService = require('../utils/cloudflareDnsService');
+        const cloudflareResult = await cloudflareDnsService.describeDomainRecords(
+          domainName,
+          parseInt(page),
+          parseInt(pageSize)
+        );
+        records = cloudflareResult.result || [];
+
+        // 根据记录类型筛选
+        if (type) {
+          records = records.filter(r => r.type === type);
+        }
+
+        // 根据关键词搜索
+        if (keyword) {
+          records = records.filter(r =>
+            r.name.toLowerCase().includes(keyword.toLowerCase())
+          );
+        }
+
+        total = cloudflareResult.result_info?.total_count || records.length;
+        records = records.map(r => ({
+          recordId: r.id,
+          rr: r.name === domainName ? '@' : r.name.replace(`.${domainName}`, ''),
+          type: r.type,
+          value: r.content,
+          ttl: r.ttl,
+          line: '-',
+          weight: r.priority || 1,
+          status: r.proxied ? 'PROXIED' : 'DNS_ONLY',
+          updatedAt: r.modified_on
+        }));
+        break;
+      }
+
+      default:
+        return res.status(400).json({
+          code: 1001,
+          message: '不支持的平台类型',
+          data: null,
+          timestamp: Date.now()
+        });
+    }
+
+    res.json({
+      code: 0,
+      message: 'success',
+      data: {
+        list: records,
+        total: total,
+        page: parseInt(page),
+        pageSize: parseInt(pageSize)
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('获取域名解析记录错误:', error);
+    console.error('错误堆栈:', error.stack);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
 module.exports = {
   getSettings,
   updateSettings,
@@ -1135,5 +1481,7 @@ module.exports = {
   updatePlatformSetting,
   deletePlatformSetting,
   updatePlatformSettingStatus,
-  getDomainsByPlatformSetting
+  getDomainsByPlatformSetting,
+  addDomain,
+  getDomainRecords
 };

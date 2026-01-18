@@ -140,7 +140,9 @@ class TencentDnsService {
     };
 
     try {
+      console.log('调用腾讯云 DescribeRecordList，参数:', params);
       const result = await client.DescribeRecordList(params);
+      console.log('腾讯云 DescribeRecordList 返回:', JSON.stringify(result, null, 2));
       return result;
     } catch (error) {
       console.error('Tencent DNS DescribeRecordList Error:', error);
