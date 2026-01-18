@@ -11,6 +11,7 @@ const {
   deletePlatformSetting,
   updatePlatformSettingStatus,
   getDomainsByPlatformSetting,
+  getDomainList,
   addDomain,
   deleteDomain,
   getDomainRecords,
@@ -58,6 +59,9 @@ router.patch('/platform-settings/:id/status', updatePlatformSettingStatus);
 router.get('/platform-settings/:id/domains', getDomainsByPlatformSetting);
 
 // ==================== 域名管理 ====================
+
+// 获取域名列表（本地数据库）
+router.get('/domains', getDomainList);
 
 // 添加域名
 router.post('/domains', addDomain);

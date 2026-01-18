@@ -229,7 +229,10 @@ const local: App.I18n.Schema = {
     'system-settings_basic': '基础设置',
     'system-settings_email': '邮箱设置',
     'user-management': '用户管理',
-    'user-management_list': '用户列表'
+    'user-management_list': '用户列表',
+    'domain-management': '域名管理',
+    'domain-management_account': '域名账户',
+    'domain-management_list': '域名列表'
   },
   page: {
     login: {

@@ -1525,7 +1525,89 @@ GET /api/v1/admin/platform-settings/1/domains?page=1&pageSize=10&keyword=example
 
 ---
 
-### 4.12 添加域名
+### 4.12 获取域名列表（本地数据库）
+**开发状态**: ✅ 已完成
+
+获取本地数据库中的域名列表，支持分页和筛选。
+
+*   **接口地址**: `GET /api/v1/admin/domains`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **查询参数 (Query Params)**:
+
+| 参数名 | 类型 | 必填 | 描述 | 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| page | number | 否 | 页码 | 1 |
+| pageSize | number | 否 | 每页数量 | 20 |
+| platformId | number | 否 | 云平台配置ID筛选 | - |
+| keyword | string | 否 | 域名搜索关键词 | - |
+| isActive | boolean | 否 | 是否启用筛选 | - |
+
+*   **请求示例**:
+```
+GET /api/v1/admin/domains?page=1&pageSize=20&platformId=2&keyword=example
+```
+
+**注意事项**:
+- 返回的数据来自本地数据库，不是从云平台 API 实时获取
+- 支持按云平台配置ID和域名关键词进行筛选
+- 返回的域名按创建时间倒序排列
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 3,
+        "domain": "example.com",
+        "platformId": 2,
+        "platformName": "腾讯云配置",
+        "platform": "tencent",
+        "isActive": true,
+        "isPublic": true,
+        "remarks": "主域名",
+        "createdAt": "2024-01-17T10:00:00.000Z",
+        "updatedAt": "2024-01-17T10:00:00.000Z"
+      },
+      {
+        "id": 2,
+        "domain": "test.com",
+        "platformId": 1,
+        "platformName": "阿里云配置",
+        "platform": "aliyun",
+        "isActive": true,
+        "isPublic": false,
+        "remarks": "",
+        "createdAt": "2024-01-16T10:00:00.000Z",
+        "updatedAt": "2024-01-16T10:00:00.000Z"
+      }
+    ],
+    "total": 2,
+    "page": 1,
+    "pageSize": 20
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 服务器错误)**:
+```json
+{
+  "code": 5000,
+  "message": "服务器内部错误",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.14 添加域名
 **开发状态**: ⏳ 已完成
 
 将从云平台 API 获取的域名添加到本地数据库，关联到指定的云平台配置。
@@ -1610,7 +1692,7 @@ GET /api/v1/admin/platform-settings/1/domains?page=1&pageSize=10&keyword=example
 
 ---
 
-### 4.13 获取域名解析记录列表
+### 4.15 获取域名解析记录列表
 **开发状态**: ⏳ 已完成
 
 获取指定主域名的所有 DNS 解析记录列表。
@@ -1704,7 +1786,7 @@ GET /api/v1/admin/domains/1/records?page=1&pageSize=20&type=A
 
 ---
 
-### 4.14 删除域名解析记录
+### 4.16 删除域名解析记录
 **开发状态**:  待测试
 
 删除指定的域名解析记录。
@@ -1772,7 +1854,7 @@ DELETE /api/v1/admin/domains/1/records/12345678
 
 ---
 
-### 4.15 删除域名
+### 4.17 删除域名
 **开发状态**: 待测试
 
 删除指定的域名记录。
@@ -1820,7 +1902,7 @@ DELETE /api/v1/admin/domains/3
 
 ---
 
-### 4.16 新增域名解析记录
+### 4.18 新增域名解析记录
 **开发状态**: ✅ 待测试
 
 为指定域名添加 DNS 解析记录。
@@ -1915,7 +1997,7 @@ POST /api/v1/admin/domains/3/records
 
 ---
 
-### 4.17 修改域名解析记录
+### 4.19 修改域名解析记录
 **开发状态**: ✅ 待测试
 
 修改指定的 DNS 解析记录。

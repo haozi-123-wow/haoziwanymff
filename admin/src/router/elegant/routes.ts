@@ -40,6 +40,42 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'domain-management',
+    path: '/domain-management',
+    component: 'layout.base',
+    meta: {
+      title: 'domain-management',
+      i18nKey: 'route.domain-management',
+      icon: 'mdi:web',
+      order: 4,
+      roles: ['admin']
+    },
+    children: [
+      {
+        name: 'domain-management_account',
+        path: '/domain-management/account',
+        component: 'view.domain-management_account',
+        meta: {
+          title: 'domain-management_account',
+          i18nKey: 'route.domain-management_account',
+          icon: 'mdi:account-key',
+          roles: ['admin']
+        }
+      },
+      {
+        name: 'domain-management_list',
+        path: '/domain-management/list',
+        component: 'view.domain-management_list',
+        meta: {
+          title: 'domain-management_list',
+          i18nKey: 'route.domain-management_list',
+          icon: 'mdi:list-box',
+          roles: ['admin']
+        }
+      }
+    ]
+  },
+  {
     name: 'home',
     path: '/home',
     component: 'layout.base$view.home',

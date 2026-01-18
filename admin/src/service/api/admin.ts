@@ -44,3 +44,90 @@ export function fetchUpdateUserStatus(userId: string, data: Api.Admin.UpdateUser
     data
   });
 }
+
+// ==================== 云平台配置相关API ====================
+
+/** Get platform settings list */
+export function fetchGetPlatformSettings(params?: { page?: number; pageSize?: number }) {
+  return request<Api.Admin.PlatformSettingList>({
+    url: '/admin/platform-settings',
+    method: 'get',
+    params
+  });
+}
+
+/** Add platform setting */
+export function fetchAddPlatformSetting(data: Api.Admin.AddPlatformSettingParams) {
+  return request<Api.Admin.PlatformSetting>({
+    url: '/admin/platform-settings',
+    method: 'post',
+    data
+  });
+}
+
+/** Update platform setting */
+export function fetchUpdatePlatformSetting(id: number, data: Api.Admin.UpdatePlatformSettingParams) {
+  return request<Api.Admin.PlatformSetting>({
+    url: `/admin/platform-settings/${id}`,
+    method: 'put',
+    data
+  });
+}
+
+/** Delete platform setting */
+export function fetchDeletePlatformSetting(id: number) {
+  return request<{ message: string }>({
+    url: `/admin/platform-settings/${id}`,
+    method: 'delete'
+  });
+}
+
+/** Update platform setting status */
+export function fetchUpdatePlatformSettingStatus(id: number, data: Api.Admin.UpdatePlatformSettingStatusParams) {
+  return request<{ message: string }>({
+    url: `/admin/platform-settings/${id}/status`,
+    method: 'put',
+    data
+  });
+}
+
+// ==================== 域名相关API ====================
+
+/** Get all domains from database */
+export function fetchGetDomains(params?: Api.Admin.GetDomainsParams) {
+  return request<Api.Admin.DomainList>({
+    url: '/admin/domains',
+    method: 'get',
+    params
+  });
+}
+
+/** Get domains by platform setting */
+export function fetchGetDomainsByPlatformSetting(
+  platformId: number,
+  params?: Api.Admin.GetDomainsByPlatformParams
+) {
+  return request<Api.Admin.DomainList>({
+    url: `/admin/platform-settings/${platformId}/domains`,
+    method: 'get',
+    params
+  });
+}
+
+/** Get cloud platform domains (for adding to database) */
+export function fetchGetCloudDomains(platformId: number, params?: { page?: number; pageSize?: number }) {
+  return request<Api.Admin.CloudDomainList>({
+    url: `/admin/platform-settings/${platformId}/domains`,
+    method: 'get',
+    params
+  });
+}
+
+/** Add domain */
+export function fetchAddDomain(data: Api.Admin.AddDomainParams) {
+  return request<Api.Admin.AddDomainResult>({
+    url: '/admin/domains',
+    method: 'post',
+    data
+  });
+}

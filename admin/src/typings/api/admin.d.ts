@@ -80,5 +80,109 @@ declare namespace Api {
       isBanned: boolean;
       banReason: string | null;
     }
+
+    // 云平台配置相关类型
+    interface PlatformSetting {
+      id: number;
+      name: string;
+      platform: 'aliyun' | 'tencent' | 'cloudflare';
+      accessKeyId: string;
+      accessKeySecret?: string;
+      isActive: boolean;
+      config?: Record<string, any>;
+      createdAt: string;
+      updatedAt: string;
+      domainCount?: number;
+    }
+
+    interface PlatformSettingList {
+      list: PlatformSetting[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }
+
+    interface AddPlatformSettingParams {
+      name: string;
+      platform: 'aliyun' | 'tencent' | 'cloudflare';
+      accessKeyId: string;
+      accessKeySecret: string;
+      isActive?: boolean;
+    }
+
+    interface UpdatePlatformSettingParams {
+      name?: string;
+      accessKeyId?: string;
+      accessKeySecret?: string;
+      isActive?: boolean;
+    }
+
+    interface UpdatePlatformSettingStatusParams {
+      isActive: boolean;
+    }
+
+    // 域名相关类型
+    interface Domain {
+      id: number;
+      domain: string;
+      platformId: number;
+      platformName: string;
+      platform: string;
+      isActive: boolean;
+      isPublic: boolean;
+      remarks?: string;
+      createdAt: string;
+      updatedAt: string;
+    }
+
+    interface DomainList {
+      list: Domain[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }
+
+    interface GetDomainsParams {
+      page?: number;
+      pageSize?: number;
+      platformId?: number;
+      keyword?: string;
+      isActive?: boolean;
+    }
+
+    interface GetDomainsByPlatformParams {
+      page?: number;
+      pageSize?: number;
+      keyword?: string;
+    }
+
+    interface CloudPlatformDomain {
+      domainId: string;
+      domainName: string;
+      status: string;
+    }
+
+    interface CloudDomainList {
+      list: CloudPlatformDomain[];
+      total: number;
+    }
+
+    interface AddDomainParams {
+      domain: string;
+      platformId: number;
+      remarks?: string;
+      isPublic?: boolean;
+    }
+
+    interface AddDomainResult {
+      id: number;
+      domain: string;
+      platformId: number;
+      isActive: boolean;
+      isPublic: boolean;
+      remarks: string;
+      createdAt: string;
+      updatedAt: string;
+    }
   }
 }

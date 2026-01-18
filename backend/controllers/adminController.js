@@ -1125,6 +1125,86 @@ const getDomainsByPlatformSetting = async (req, res) => {
 };
 
 /**
+ * 获取域名列表（本地数据库）
+ */
+const getDomainList = async (req, res) => {
+  try {
+    const { page = 1, pageSize = 20, platformId, keyword, isActive } = req.query;
+
+    console.log('=== getDomainList 被调用 ===');
+    console.log('page:', page, 'pageSize:', pageSize, 'platformId:', platformId, 'keyword:', keyword, 'isActive:', isActive);
+
+    // 构建查询条件
+    const where = {};
+    if (platformId) {
+      where.platform_id = platformId;
+    }
+    if (keyword) {
+      where.domain = {
+        [Op.like]: `%${keyword}%`
+      };
+    }
+    if (isActive !== undefined && isActive !== '') {
+      where.is_active = isActive === 'true' || isActive === true;
+    }
+
+    // 查询总数
+    const total = await Domain.count({
+      where,
+      include: [{
+        model: PlatformSetting
+      }]
+    });
+
+    // 查询域名列表
+    const domains = await Domain.findAll({
+      where,
+      include: [{
+        model: PlatformSetting,
+        attributes: ['id', 'name', 'platform', 'is_active']
+      }],
+      order: [['created_at', 'DESC']],
+      offset: (parseInt(page) - 1) * parseInt(pageSize),
+      limit: parseInt(pageSize)
+    });
+
+    const list = domains.map(d => ({
+      id: d.id,
+      domain: d.domain,
+      platformId: d.platform_id,
+      platformName: d.PlatformSetting?.name,
+      platform: d.PlatformSetting?.platform,
+      isActive: d.is_active,
+      isPublic: d.is_public,
+      remarks: d.remarks,
+      createdAt: d.created_at,
+      updatedAt: d.updated_at
+    }));
+
+    res.json({
+      code: 0,
+      message: 'success',
+      data: {
+        list,
+        total,
+        page: parseInt(page),
+        pageSize: parseInt(pageSize)
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('获取域名列表错误:', error);
+    console.error('错误堆栈:', error.stack);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
  * 添加域名
  */
 const addDomain = async (req, res) => {
@@ -1846,6 +1926,7 @@ module.exports = {
   deletePlatformSetting,
   updatePlatformSettingStatus,
   getDomainsByPlatformSetting,
+  getDomainList,
   addDomain,
   deleteDomain,
   getDomainRecords,
