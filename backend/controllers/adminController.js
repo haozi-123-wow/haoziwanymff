@@ -1273,6 +1273,55 @@ const addDomain = async (req, res) => {
 };
 
 /**
+ * 删除域名
+ */
+const deleteDomain = async (req, res) => {
+  try {
+    const { domainId } = req.params;
+
+    console.log('=== deleteDomain 被调用 ===');
+    console.log('domainId:', domainId);
+
+    // 验证域名是否存在
+    const domainRecord = await Domain.findOne({
+      where: { id: domainId }
+    });
+
+    if (!domainRecord) {
+      return res.status(404).json({
+        code: 1005,
+        message: '域名不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    console.log('删除域名:', domainRecord.domain);
+
+    // 删除域名记录
+    await Domain.destroy({
+      where: { id: domainId }
+    });
+
+    res.json({
+      code: 0,
+      message: '删除成功',
+      data: null,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('删除域名错误:', error);
+    console.error('错误堆栈:', error.stack);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
  * 获取域名解析记录列表
  */
 const getDomainRecords = async (req, res) => {
@@ -1470,6 +1519,321 @@ const getDomainRecords = async (req, res) => {
   }
 };
 
+/**
+ * 删除域名解析记录
+ */
+const deleteDomainRecord = async (req, res) => {
+  try {
+    const { domainId, recordId } = req.params;
+
+    console.log('=== deleteDomainRecord 被调用 ===');
+    console.log('domainId:', domainId, 'recordId:', recordId);
+
+    // 验证域名是否存在
+    const domainRecord = await Domain.findOne({
+      where: { id: domainId },
+      include: [{
+        model: PlatformSetting
+      }]
+    });
+
+    console.log('查询到的 domainRecord:', domainRecord?.id, domainRecord?.domain);
+    console.log('关联的 PlatformSetting:', domainRecord?.PlatformSetting?.id, domainRecord?.PlatformSetting?.platform);
+
+    if (!domainRecord) {
+      return res.status(404).json({
+        code: 1005,
+        message: '域名不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const platformSetting = domainRecord.PlatformSetting;
+
+    if (!platformSetting) {
+      return res.status(400).json({
+        code: 1002,
+        message: '域名未关联云平台配置',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const platform = platformSetting.platform;
+    const domainName = domainRecord.domain;
+
+    console.log('平台类型:', platform, '域名:', domainName);
+
+    // 根据平台类型调用相应的删除方法
+    switch (platform) {
+      case 'aliyun': {
+        const aliyunDnsService = require('../utils/aliyunDnsService');
+        await aliyunDnsService.deleteDomainRecord(domainName, recordId);
+        break;
+      }
+
+      case 'tencent': {
+        const tencentDnsService = require('../utils/tencentDnsService');
+        await tencentDnsService.deleteDomainRecord(domainName, recordId);
+        break;
+      }
+
+      case 'cloudflare': {
+        const cloudflareDnsService = require('../utils/cloudflareDnsService');
+        await cloudflareDnsService.deleteDomainRecord(domainName, recordId);
+        break;
+      }
+
+      default:
+        return res.status(400).json({
+          code: 1001,
+          message: '不支持的平台类型',
+          data: null,
+          timestamp: Date.now()
+        });
+    }
+
+    res.json({
+      code: 0,
+      message: '删除成功',
+      data: null,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('删除域名解析记录错误:', error);
+    console.error('错误堆栈:', error.stack);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 新增域名解析记录
+ */
+const addDomainRecord = async (req, res) => {
+  try {
+    const { domainId } = req.params;
+    const { rr, type, value, ttl = 600, line = '默认' } = req.body;
+
+    console.log('=== addDomainRecord 被调用 ===');
+    console.log('domainId:', domainId, 'rr:', rr, 'type:', type, 'value:', value, 'ttl:', ttl, 'line:', line);
+
+    // 参数验证
+    if (!rr || !type || !value) {
+      return res.status(400).json({
+        code: 1003,
+        message: '缺少必要参数：rr, type, value',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 验证域名是否存在
+    const domainRecord = await Domain.findOne({
+      where: { id: domainId },
+      include: [{
+        model: PlatformSetting
+      }]
+    });
+
+    console.log('查询到的 domainRecord:', domainRecord?.id, domainRecord?.domain);
+    console.log('关联的 PlatformSetting:', domainRecord?.PlatformSetting?.id, domainRecord?.PlatformSetting?.platform);
+
+    if (!domainRecord) {
+      return res.status(404).json({
+        code: 1005,
+        message: '域名不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const platformSetting = domainRecord.PlatformSetting;
+
+    if (!platformSetting) {
+      return res.status(400).json({
+        code: 1002,
+        message: '域名未关联云平台配置',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const platform = platformSetting.platform;
+    const domainName = domainRecord.domain;
+
+    console.log('平台类型:', platform, '域名:', domainName);
+
+    // 根据平台类型调用相应的添加方法
+    let result;
+    switch (platform) {
+      case 'aliyun': {
+        const aliyunDnsService = require('../utils/aliyunDnsService');
+        result = await aliyunDnsService.addDomainRecord(domainName, rr, type, value);
+        console.log('阿里云返回:', JSON.stringify(result, null, 2));
+        break;
+      }
+
+      case 'tencent': {
+        const tencentDnsService = require('../utils/tencentDnsService');
+        result = await tencentDnsService.addDomainRecord(domainName, rr, type, value);
+        console.log('腾讯云返回:', JSON.stringify(result, null, 2));
+        break;
+      }
+
+      case 'cloudflare': {
+        const cloudflareDnsService = require('../utils/cloudflareDnsService');
+        result = await cloudflareDnsService.addDomainRecord(domainName, rr, type, value);
+        console.log('Cloudflare返回:', JSON.stringify(result, null, 2));
+        break;
+      }
+
+      default:
+        return res.status(400).json({
+          code: 1001,
+          message: '不支持的平台类型',
+          data: null,
+          timestamp: Date.now()
+        });
+    }
+
+    res.json({
+      code: 0,
+      message: '添加成功',
+      data: {
+        message: '解析记录已添加',
+        result: result
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('新增域名解析记录错误:', error);
+    console.error('错误堆栈:', error.stack);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 修改域名解析记录
+ */
+const modifyDomainRecord = async (req, res) => {
+  try {
+    const { domainId, recordId } = req.params;
+    const { rr, type, value } = req.body;
+
+    console.log('=== modifyDomainRecord 被调用 ===');
+    console.log('domainId:', domainId, 'recordId:', recordId, 'rr:', rr, 'type:', type, 'value:', value);
+
+    // 参数验证
+    if (!rr || !type || !value) {
+      return res.status(400).json({
+        code: 1003,
+        message: '缺少必要参数：rr, type, value',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 验证域名是否存在
+    const domainRecord = await Domain.findOne({
+      where: { id: domainId },
+      include: [{
+        model: PlatformSetting
+      }]
+    });
+
+    console.log('查询到的 domainRecord:', domainRecord?.id, domainRecord?.domain);
+    console.log('关联的 PlatformSetting:', domainRecord?.PlatformSetting?.id, domainRecord?.PlatformSetting?.platform);
+
+    if (!domainRecord) {
+      return res.status(404).json({
+        code: 1005,
+        message: '域名不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const platformSetting = domainRecord.PlatformSetting;
+
+    if (!platformSetting) {
+      return res.status(400).json({
+        code: 1002,
+        message: '域名未关联云平台配置',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const platform = platformSetting.platform;
+    const domainName = domainRecord.domain;
+
+    console.log('平台类型:', platform, '域名:', domainName);
+
+    // 根据平台类型调用相应的修改方法
+    let result;
+    switch (platform) {
+      case 'aliyun': {
+        const aliyunDnsService = require('../utils/aliyunDnsService');
+        result = await aliyunDnsService.modifyDomainRecord(domainName, recordId, rr, type, value);
+        console.log('阿里云返回:', JSON.stringify(result, null, 2));
+        break;
+      }
+
+      case 'tencent': {
+        const tencentDnsService = require('../utils/tencentDnsService');
+        result = await tencentDnsService.modifyDomainRecord(domainName, recordId, rr, type, value);
+        console.log('腾讯云返回:', JSON.stringify(result, null, 2));
+        break;
+      }
+
+      case 'cloudflare': {
+        const cloudflareDnsService = require('../utils/cloudflareDnsService');
+        result = await cloudflareDnsService.modifyDomainRecord(domainName, recordId, rr, type, value);
+        console.log('Cloudflare返回:', JSON.stringify(result, null, 2));
+        break;
+      }
+
+      default:
+        return res.status(400).json({
+          code: 1001,
+          message: '不支持的平台类型',
+          data: null,
+          timestamp: Date.now()
+        });
+    }
+
+    res.json({
+      code: 0,
+      message: '修改成功',
+      data: {
+        message: '解析记录已修改',
+        result: result
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('修改域名解析记录错误:', error);
+    console.error('错误堆栈:', error.stack);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
 module.exports = {
   getSettings,
   updateSettings,
@@ -1483,5 +1847,9 @@ module.exports = {
   updatePlatformSettingStatus,
   getDomainsByPlatformSetting,
   addDomain,
-  getDomainRecords
+  deleteDomain,
+  getDomainRecords,
+  deleteDomainRecord,
+  addDomainRecord,
+  modifyDomainRecord
 };

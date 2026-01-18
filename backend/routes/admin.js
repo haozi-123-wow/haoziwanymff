@@ -12,7 +12,11 @@ const {
   updatePlatformSettingStatus,
   getDomainsByPlatformSetting,
   addDomain,
-  getDomainRecords
+  deleteDomain,
+  getDomainRecords,
+  deleteDomainRecord,
+  addDomainRecord,
+  modifyDomainRecord
 } = require('../controllers/adminController');
 const { uploadFields, handleUploadError } = require('../middleware/upload');
 
@@ -58,7 +62,19 @@ router.get('/platform-settings/:id/domains', getDomainsByPlatformSetting);
 // 添加域名
 router.post('/domains', addDomain);
 
+// 删除域名
+router.delete('/domains/:domainId', deleteDomain);
+
 // 获取域名解析记录列表
 router.get('/domains/:domainId/records', getDomainRecords);
+
+// 新增域名解析记录
+router.post('/domains/:domainId/records', addDomainRecord);
+
+// 修改域名解析记录
+router.put('/domains/:domainId/records/:recordId', modifyDomainRecord);
+
+// 删除域名解析记录
+router.delete('/domains/:domainId/records/:recordId', deleteDomainRecord);
 
 module.exports = router;

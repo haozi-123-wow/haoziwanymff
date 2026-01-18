@@ -1526,7 +1526,7 @@ GET /api/v1/admin/platform-settings/1/domains?page=1&pageSize=10&keyword=example
 ---
 
 ### 4.12 添加域名
-**开发状态**: ⏳ 待测试
+**开发状态**: ⏳ 已完成
 
 将从云平台 API 获取的域名添加到本地数据库，关联到指定的云平台配置。
 
@@ -1611,7 +1611,7 @@ GET /api/v1/admin/platform-settings/1/domains?page=1&pageSize=10&keyword=example
 ---
 
 ### 4.13 获取域名解析记录列表
-**开发状态**: ⏳ 待开发
+**开发状态**: ⏳ 已完成
 
 获取指定主域名的所有 DNS 解析记录列表。
 
@@ -1697,6 +1697,300 @@ GET /api/v1/admin/domains/1/records?page=1&pageSize=20&type=A
 {
   "code": 5000,
   "message": "获取解析记录失败：云平台API错误",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.14 删除域名解析记录
+**开发状态**:  待测试
+
+删除指定的域名解析记录。
+
+*   **接口地址**: `DELETE /api/v1/admin/domains/:domainId/records/:recordId`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| domainId | number | 是 | 域名ID（在本地数据库中的ID） |
+| recordId | string | 是 | 解析记录ID（云平台返回的记录ID） |
+
+*   **请求示例**:
+```
+DELETE /api/v1/admin/domains/1/records/12345678
+```
+
+**注意事项**:
+- 删除操作会直接调用云平台 API，删除后无法恢复
+- 建议在删除前再次确认记录内容
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "删除成功",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 域名不存在)**:
+```json
+{
+  "code": 1005,
+  "message": "域名不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 记录不存在)**:
+```json
+{
+  "code": 5000,
+  "message": "RecordId不合法",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 云平台配置错误)**:
+```json
+{
+  "code": 5000,
+  "message": "删除解析记录失败：云平台API错误",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.15 删除域名
+**开发状态**: 待测试
+
+删除指定的域名记录。
+
+*   **接口地址**: `DELETE /api/v1/admin/domains/:domainId`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| domainId | number | 是 | 域名ID（在本地数据库中的ID） |
+
+*   **请求示例**:
+```
+DELETE /api/v1/admin/domains/3
+```
+
+**注意事项**:
+- 删除操作仅从本地数据库中删除域名记录
+- 云平台中的域名不会被删除，如需删除请到云平台控制台操作
+- 删除后该域名将无法再通过本系统管理
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "删除成功",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 域名不存在)**:
+```json
+{
+  "code": 1005,
+  "message": "域名不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.16 新增域名解析记录
+**开发状态**: ✅ 待测试
+
+为指定域名添加 DNS 解析记录。
+
+*   **接口地址**: `POST /api/v1/admin/domains/:domainId/records`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+    *   `Content-Type: application/json`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| domainId | number | 是 | 域名ID（在本地数据库中的ID） |
+
+*   **请求体 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| rr | string | 是 | 主机记录（如: @, www, api） |
+| type | string | 是 | 记录类型（A, CNAME, TXT, MX, SRV 等） |
+| value | string | 是 | 记录值 |
+| ttl | number | 否 | TTL（秒），默认 600 |
+| line | string | 否 | 线路（仅部分平台支持），默认 "默认" |
+
+*   **请求示例**:
+```json
+POST /api/v1/admin/domains/3/records
+{
+  "rr": "www",
+  "type": "A",
+  "value": "1.2.3.4",
+  "ttl": 600
+}
+```
+
+**注意事项**:
+- `@` 表示根域名（如 example.com 本身）
+- 不同云平台对记录类型和线路的支持可能不同
+- TTL 范围一般为 600-86400 秒
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "添加成功",
+  "data": {
+    "message": "解析记录已添加",
+    "result": {
+      "RecordId": "123456789",
+      "RR": "www",
+      "Type": "A",
+      "Value": "1.2.3.4",
+      "TTL": 600,
+      "Status": "ENABLE"
+    }
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 缺少参数)**:
+```json
+{
+  "code": 1003,
+  "message": "缺少必要参数：rr, type, value",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 域名不存在)**:
+```json
+{
+  "code": 1005,
+  "message": "域名不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 云平台错误)**:
+```json
+{
+  "code": 5000,
+  "message": "DomainOwnerVerifyFailed",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.17 修改域名解析记录
+**开发状态**: ✅ 待测试
+
+修改指定的 DNS 解析记录。
+
+*   **接口地址**: `PUT /api/v1/admin/domains/:domainId/records/:recordId`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+    *   `Content-Type: application/json`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| domainId | number | 是 | 域名ID（在本地数据库中的ID） |
+| recordId | string | 是 | 解析记录ID（云平台返回的记录ID） |
+
+*   **请求体 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| rr | string | 是 | 主机记录（如: @, www, api） |
+| type | string | 是 | 记录类型（A, CNAME, TXT, MX, SRV 等） |
+| value | string | 是 | 记录值 |
+
+*   **请求示例**:
+```json
+PUT /api/v1/admin/domains/3/records/12345678
+{
+  "rr": "www",
+  "type": "CNAME",
+  "value": "example.com"
+}
+```
+
+**注意事项**:
+- `@` 表示根域名（如 example.com 本身）
+- 修改操作会覆盖记录的原有值
+- 不同云平台对记录类型的限制可能不同
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "修改成功",
+  "data": {
+    "message": "解析记录已修改",
+    "result": {
+      "RecordId": "123456789",
+      "RR": "www",
+      "Type": "CNAME",
+      "Value": "example.com",
+      "TTL": 600,
+      "Status": "ENABLE"
+    }
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 缺少参数)**:
+```json
+{
+  "code": 1003,
+  "message": "缺少必要参数：rr, type, value",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 记录不存在)**:
+```json
+{
+  "code": 5000,
+  "message": "InvalidRecordId",
   "data": null,
   "timestamp": 1698765432000
 }

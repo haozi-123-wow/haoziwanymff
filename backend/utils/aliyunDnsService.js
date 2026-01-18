@@ -95,6 +95,36 @@ class AliyunDnsService {
   }
 
   /**
+   * 修改解析记录
+   * 注意：需要提供 domainName 以便查找对应的 AccessKey
+   * @param {string} domainName 域名名称
+   * @param {string} recordId 解析记录ID
+   * @param {string} rr 主机记录 (如: www, @, *)
+   * @param {string} type 记录类型 (如: A, CNAME, TXT)
+   * @param {string} value 记录值
+   * @returns {Promise<object>}
+   */
+  async modifyDomainRecord(domainName, recordId, rr, type, value) {
+    const client = await this._getClient(domainName);
+
+    const updateDomainRecordRequest = new Alidns20150109.UpdateDomainRecordRequest({
+      recordId: recordId,
+      rR: rr,
+      type: type,
+      value: value,
+    });
+
+    const runtime = new Util.RuntimeOptions({});
+    try {
+      const result = await client.updateDomainRecordWithOptions(updateDomainRecordRequest, runtime);
+      return result.body;
+    } catch (error) {
+      console.error('Aliyun DNS UpdateDomainRecord Error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 获取子域名解析记录列表
    * @param {string} domainName 域名名称
    * @param {string} rrSubDomain 子域名 (如: www.example.com)
