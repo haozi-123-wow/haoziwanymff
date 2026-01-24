@@ -184,5 +184,53 @@ declare namespace Api {
       createdAt: string;
       updatedAt: string;
     }
+
+    interface UpdateDomainParams {
+      platformId?: number;
+      remarks?: string;
+      isPublic?: boolean;
+      isActive?: boolean;
+    }
+
+    // DNS解析记录相关类型
+    interface DnsRecord {
+      recordId: string;
+      rr: string;
+      type: string;
+      value: string;
+      ttl: number;
+      line: string;
+      weight: number;
+      status: string;
+      updatedAt: string;
+    }
+
+    interface DomainRecordList {
+      list: DnsRecord[];
+      total: number;
+      page: number;
+      pageSize: number;
+    }
+
+    interface GetDomainRecordsParams {
+      page?: number;
+      pageSize?: number;
+      type?: string;
+      keyword?: string;
+    }
+
+    interface AddDomainRecordParams {
+      rr: string;
+      type: string;
+      value: string;
+      ttl?: number;
+      line?: string;
+    }
+
+    interface UpdateDomainRecordParams {
+      rr: string;
+      type: string;
+      value: string;
+    }
   }
 }

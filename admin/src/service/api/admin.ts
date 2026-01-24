@@ -131,3 +131,55 @@ export function fetchAddDomain(data: Api.Admin.AddDomainParams) {
     data
   });
 }
+
+/** Update domain */
+export function fetchUpdateDomain(domainId: number, data: Api.Admin.UpdateDomainParams) {
+  return request<Api.Admin.Domain>({
+    url: `/admin/domains/${domainId}`,
+    method: 'put',
+    data
+  });
+}
+
+/** Delete domain */
+export function fetchDeleteDomain(domainId: number) {
+  return request<{ message: string }>({
+    url: `/admin/domains/${domainId}`,
+    method: 'delete'
+  });
+}
+
+/** Get domain DNS records */
+export function fetchGetDomainRecords(domainId: number, params?: Api.Admin.GetDomainRecordsParams) {
+  return request<Api.Admin.DomainRecordList>({
+    url: `/admin/domains/${domainId}/records`,
+    method: 'get',
+    params
+  });
+}
+
+/** Add domain DNS record */
+export function fetchAddDomainRecord(domainId: number, data: Api.Admin.AddDomainRecordParams) {
+  return request<any>({
+    url: `/admin/domains/${domainId}/records`,
+    method: 'post',
+    data
+  });
+}
+
+/** Update domain DNS record */
+export function fetchUpdateDomainRecord(domainId: number, recordId: string, data: Api.Admin.UpdateDomainRecordParams) {
+  return request<any>({
+    url: `/admin/domains/${domainId}/records/${recordId}`,
+    method: 'put',
+    data
+  });
+}
+
+/** Delete domain DNS record */
+export function fetchDeleteDomainRecord(domainId: number, recordId: string) {
+  return request<{ message: string }>({
+    url: `/admin/domains/${domainId}/records/${recordId}`,
+    method: 'delete'
+  });
+}

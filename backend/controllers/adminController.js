@@ -1402,6 +1402,105 @@ const deleteDomain = async (req, res) => {
 };
 
 /**
+ * 修改域名配置
+ */
+const updateDomain = async (req, res) => {
+  try {
+    const { domainId } = req.params;
+    const { platformId, remarks, isPublic, isActive } = req.body;
+
+    console.log('=== updateDomain 被调用 ===');
+    console.log('domainId:', domainId, 'platformId:', platformId, 'remarks:', remarks, 'isPublic:', isPublic, 'isActive:', isActive);
+
+    // 验证域名是否存在
+    const domainRecord = await Domain.findOne({
+      where: { id: domainId }
+    });
+
+    if (!domainRecord) {
+      return res.status(404).json({
+        code: 1005,
+        message: '域名不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 构建更新对象
+    const updateData = {};
+    if (platformId !== undefined && platformId !== null && platformId !== '') {
+      updateData.platform_id = platformId;
+    }
+    if (remarks !== undefined) {
+      updateData.remarks = remarks;
+    }
+    if (isPublic !== undefined) {
+      updateData.is_public = isPublic;
+    }
+    if (isActive !== undefined) {
+      updateData.is_active = isActive;
+    }
+
+    // 如果要修改 platform_id，需要验证平台是否存在
+    if (updateData.platform_id) {
+      const platformSetting = await PlatformSetting.findOne({
+        where: { id: updateData.platform_id }
+      });
+
+      if (!platformSetting) {
+        return res.status(400).json({
+          code: 1002,
+          message: '云平台配置不存在',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+    }
+
+    // 更新域名
+    await Domain.update(updateData, {
+      where: { id: domainId }
+    });
+
+    // 获取更新后的域名信息
+    const updatedDomain = await Domain.findOne({
+      where: { id: domainId },
+      include: [{
+        model: PlatformSetting,
+        attributes: ['id', 'name', 'platform', 'is_active']
+      }]
+    });
+
+    res.json({
+      code: 0,
+      message: '修改成功',
+      data: {
+        id: updatedDomain.id,
+        domain: updatedDomain.domain,
+        platformId: updatedDomain.platform_id,
+        platformName: updatedDomain.PlatformSetting?.name,
+        platform: updatedDomain.PlatformSetting?.platform,
+        isActive: updatedDomain.is_active,
+        isPublic: updatedDomain.is_public,
+        remarks: updatedDomain.remarks,
+        createdAt: updatedDomain.created_at,
+        updatedAt: updatedDomain.updated_at
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('修改域名配置错误:', error);
+    console.error('错误堆栈:', error.stack);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
  * 获取域名解析记录列表
  */
 const getDomainRecords = async (req, res) => {
@@ -1928,6 +2027,7 @@ module.exports = {
   getDomainsByPlatformSetting,
   getDomainList,
   addDomain,
+  updateDomain,
   deleteDomain,
   getDomainRecords,
   deleteDomainRecord,

@@ -13,6 +13,7 @@ const {
   getDomainsByPlatformSetting,
   getDomainList,
   addDomain,
+  updateDomain,
   deleteDomain,
   getDomainRecords,
   deleteDomainRecord,
@@ -65,6 +66,9 @@ router.get('/domains', getDomainList);
 
 // 添加域名
 router.post('/domains', addDomain);
+
+// 修改域名配置
+router.put('/domains/:domainId', updateDomain);
 
 // 删除域名
 router.delete('/domains/:domainId', deleteDomain);

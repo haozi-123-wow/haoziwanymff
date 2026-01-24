@@ -1692,7 +1692,91 @@ GET /api/v1/admin/domains?page=1&pageSize=20&platformId=2&keyword=example
 
 ---
 
-### 4.15 获取域名解析记录列表
+### 4.15 修改域名配置
+**开发状态**: ✅ 已完成
+
+修改本地数据库中的域名配置信息。
+
+*   **接口地址**: `PUT /api/v1/admin/domains/:domainId`
+*   **是否需要认证**: 是（需要管理员权限）
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **路径参数 (URL)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| domainId | number | 是 | 域名ID（在本地数据库中的ID） |
+
+*   **请求体 (Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| platformId | number | 否 | 云平台配置ID |
+| remarks | string | 否 | 备注说明 |
+| isPublic | boolean | 否 | 是否公开（允许用户注册） |
+| isActive | boolean | 否 | 是否启用 |
+
+*   **请求示例**:
+```json
+PUT /api/v1/admin/domains/1
+{
+  "platformId": 2,
+  "remarks": "更新后的备注",
+  "isPublic": false,
+  "isActive": true
+}
+```
+
+**注意事项**:
+- 所有参数都是可选的，只传递需要修改的字段
+- 修改平台ID时会验证平台配置是否存在
+- 域名本身不能修改，如需更换域名请删除后重新添加
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "修改成功",
+  "data": {
+    "id": 1,
+    "domain": "example.com",
+    "platformId": 2,
+    "platformName": "腾讯云配置",
+    "platform": "tencent",
+    "isActive": true,
+    "isPublic": false,
+    "remarks": "更新后的备注",
+    "createdAt": "2024-01-17T10:00:00.000Z",
+    "updatedAt": "2024-01-17T11:00:00.000Z"
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 域名不存在)**:
+```json
+{
+  "code": 1005,
+  "message": "域名不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 平台配置不存在)**:
+```json
+{
+  "code": 1002,
+  "message": "云平台配置不存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+### 4.16 获取域名解析记录列表
 **开发状态**: ⏳ 已完成
 
 获取指定主域名的所有 DNS 解析记录列表。
@@ -1786,7 +1870,7 @@ GET /api/v1/admin/domains/1/records?page=1&pageSize=20&type=A
 
 ---
 
-### 4.16 删除域名解析记录
+### 4.17 删除域名解析记录
 **开发状态**:  待测试
 
 删除指定的域名解析记录。
@@ -1854,7 +1938,7 @@ DELETE /api/v1/admin/domains/1/records/12345678
 
 ---
 
-### 4.17 删除域名
+### 4.18 删除域名
 **开发状态**: 待测试
 
 删除指定的域名记录。
@@ -1902,7 +1986,7 @@ DELETE /api/v1/admin/domains/3
 
 ---
 
-### 4.18 新增域名解析记录
+### 4.19 新增域名解析记录
 **开发状态**: ✅ 待测试
 
 为指定域名添加 DNS 解析记录。
@@ -1997,7 +2081,7 @@ POST /api/v1/admin/domains/3/records
 
 ---
 
-### 4.19 修改域名解析记录
+### 4.20 修改域名解析记录
 **开发状态**: ✅ 待测试
 
 修改指定的 DNS 解析记录。
