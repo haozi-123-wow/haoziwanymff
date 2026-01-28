@@ -131,6 +131,8 @@ declare namespace Api {
       isActive: boolean;
       isPublic: boolean;
       remarks?: string;
+      price: number;
+      requireIcp: boolean;
       createdAt: string;
       updatedAt: string;
     }
@@ -172,6 +174,8 @@ declare namespace Api {
       platformId: number;
       remarks?: string;
       isPublic?: boolean;
+      price?: number;
+      requireIcp?: boolean;
     }
 
     interface AddDomainResult {
@@ -181,6 +185,8 @@ declare namespace Api {
       isActive: boolean;
       isPublic: boolean;
       remarks: string;
+      price: number;
+      requireIcp: boolean;
       createdAt: string;
       updatedAt: string;
     }
@@ -190,6 +196,8 @@ declare namespace Api {
       remarks?: string;
       isPublic?: boolean;
       isActive?: boolean;
+      price?: number;
+      requireIcp?: boolean;
     }
 
     // DNS解析记录相关类型

@@ -1174,6 +1174,8 @@ const getDomainList = async (req, res) => {
       platformId: d.platform_id,
       platformName: d.PlatformSetting?.name,
       platform: d.PlatformSetting?.platform,
+      price: d.price,
+      requireIcp: d.require_icp,
       isActive: d.is_active,
       isPublic: d.is_public,
       remarks: d.remarks,
@@ -1209,7 +1211,7 @@ const getDomainList = async (req, res) => {
  */
 const addDomain = async (req, res) => {
   try {
-    const { domain, platformId, remarks, isPublic = true } = req.body;
+    const { domain, platformId, price = 0.00, requireIcp = false, remarks, isPublic = true } = req.body;
 
     // 参数验证
     if (!domain || !platformId) {
@@ -1321,6 +1323,8 @@ const addDomain = async (req, res) => {
     const newDomain = await Domain.create({
       domain: domain,
       platform_id: platformId,
+      price: price,
+      require_icp: requireIcp,
       is_active: true,
       is_public: isPublic,
       remarks: remarks || ''
@@ -1333,6 +1337,8 @@ const addDomain = async (req, res) => {
         id: newDomain.id,
         domain: newDomain.domain,
         platformId: newDomain.platform_id,
+        price: newDomain.price,
+        requireIcp: newDomain.require_icp,
         isActive: newDomain.is_active,
         isPublic: newDomain.is_public,
         remarks: newDomain.remarks,
@@ -1407,10 +1413,10 @@ const deleteDomain = async (req, res) => {
 const updateDomain = async (req, res) => {
   try {
     const { domainId } = req.params;
-    const { platformId, remarks, isPublic, isActive } = req.body;
+    const { platformId, price, requireIcp, remarks, isPublic, isActive } = req.body;
 
     console.log('=== updateDomain 被调用 ===');
-    console.log('domainId:', domainId, 'platformId:', platformId, 'remarks:', remarks, 'isPublic:', isPublic, 'isActive:', isActive);
+    console.log('domainId:', domainId, 'platformId:', platformId, 'price:', price, 'requireIcp:', requireIcp, 'remarks:', remarks, 'isPublic:', isPublic, 'isActive:', isActive);
 
     // 验证域名是否存在
     const domainRecord = await Domain.findOne({
@@ -1430,6 +1436,12 @@ const updateDomain = async (req, res) => {
     const updateData = {};
     if (platformId !== undefined && platformId !== null && platformId !== '') {
       updateData.platform_id = platformId;
+    }
+    if (price !== undefined) {
+      updateData.price = price;
+    }
+    if (requireIcp !== undefined) {
+      updateData.require_icp = requireIcp;
     }
     if (remarks !== undefined) {
       updateData.remarks = remarks;
@@ -1480,6 +1492,8 @@ const updateDomain = async (req, res) => {
         platformId: updatedDomain.platform_id,
         platformName: updatedDomain.PlatformSetting?.name,
         platform: updatedDomain.PlatformSetting?.platform,
+        price: updatedDomain.price,
+        requireIcp: updatedDomain.require_icp,
         isActive: updatedDomain.is_active,
         isPublic: updatedDomain.is_public,
         remarks: updatedDomain.remarks,

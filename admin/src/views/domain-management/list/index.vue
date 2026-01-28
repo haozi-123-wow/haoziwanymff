@@ -56,6 +56,8 @@ const cloudDomains = ref<Api.Admin.CloudPlatformDomain[]>([]);
 const selectedDomains = ref<string[]>([]);
 const addRemarks = ref('');
 const addIsPublic = ref(true);
+const addPrice = ref(0);
+const addRequireIcp = ref(false);
 
 // 修改域名相关
 const editDomainModalVisible = ref(false);
@@ -65,6 +67,8 @@ const editPlatformId = ref<number | null>(null);
 const editRemarks = ref('');
 const editIsPublic = ref(true);
 const editIsActive = ref(true);
+const editPrice = ref(0);
+const editRequireIcp = ref(false);
 const editing = ref(false);
 
 // 解析记录相关
@@ -178,6 +182,8 @@ async function openAddModal() {
   selectedDomains.value = [];
   addRemarks.value = '';
   addIsPublic.value = true;
+  addPrice.value = 0;
+  addRequireIcp.value = false;
   cloudDomains.value = [];
   addPlatformId.value = null;
 
@@ -247,7 +253,9 @@ async function handleAddDomains() {
         domain: domain,
         platformId: addPlatformId.value,
         remarks: addRemarks.value,
-        isPublic: addIsPublic.value
+        isPublic: addIsPublic.value,
+        price: addPrice.value,
+        requireIcp: addRequireIcp.value
       });
     }
 
@@ -287,6 +295,8 @@ function openEditModal(domain: Api.Admin.Domain) {
   editRemarks.value = domain.remarks || '';
   editIsPublic.value = domain.isPublic;
   editIsActive.value = domain.isActive;
+  editPrice.value = domain.price || 0;
+  editRequireIcp.value = domain.requireIcp || false;
   editDomainModalVisible.value = true;
 }
 
@@ -301,7 +311,9 @@ async function handleEditDomain() {
       platformId: editPlatformId.value!,
       remarks: editRemarks.value,
       isPublic: editIsPublic.value,
-      isActive: editIsActive.value
+      isActive: editIsActive.value,
+      price: editPrice.value,
+      requireIcp: editRequireIcp.value
     });
 
     if (!error && data) {
@@ -611,6 +623,24 @@ async function handleDeleteRecord(recordId: string, rr: string) {
               render: row => row.remarks || '-'
             },
             {
+              title: '价格（元）',
+              key: 'price',
+              width: 100,
+              render: (row: Api.Admin.Domain) => typeof row.price === 'number' ? row.price.toFixed(2) : '-'
+            },
+            {
+              title: '需要备案',
+              key: 'requireIcp',
+              width: 100,
+              render: (row: Api.Admin.Domain) => {
+                return h(
+                  NTag,
+                  { type: row.requireIcp ? 'warning' : 'default' },
+                  { default: () => (row.requireIcp ? '是' : '否') }
+                );
+              }
+            },
+            {
               title: '状态',
               key: 'isActive',
               width: 100,
@@ -777,6 +807,24 @@ async function handleDeleteRecord(recordId: string, rr: string) {
           </NSwitch>
           <span style="margin-left: 8px; color: #999;">公开后允许用户注册</span>
         </NFormItem>
+
+        <NFormItem label="价格（元）">
+          <NInputNumber
+            v-model:value="addPrice"
+            :min="0"
+            :step="0.01"
+            :precision="2"
+            placeholder="默认0.00"
+            style="width: 100%"
+          />
+        </NFormItem>
+
+        <NFormItem label="是否需要备案">
+          <NSwitch v-model:value="addRequireIcp">
+            <template #checked>是</template>
+            <template #unchecked>否</template>
+          </NSwitch>
+        </NFormItem>
       </NSpace>
 
       <template #footer>
@@ -828,6 +876,24 @@ async function handleDeleteRecord(recordId: string, rr: string) {
             <template #unchecked>否</template>
           </NSwitch>
           <span style="margin-left: 8px; color: #999;">公开后允许用户注册</span>
+        </NFormItem>
+
+        <NFormItem label="价格（元）">
+          <NInputNumber
+            v-model:value="editPrice"
+            :min="0"
+            :step="0.01"
+            :precision="2"
+            placeholder="默认0.00"
+            style="width: 100%"
+          />
+        </NFormItem>
+
+        <NFormItem label="是否需要备案">
+          <NSwitch v-model:value="editRequireIcp">
+            <template #checked>是</template>
+            <template #unchecked>否</template>
+          </NSwitch>
         </NFormItem>
 
         <NFormItem label="是否启用">
