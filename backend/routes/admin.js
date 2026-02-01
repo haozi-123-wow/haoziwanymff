@@ -23,7 +23,11 @@ const {
   getPaymentSettings,
   getPaymentSettingDetail,
   updatePaymentSetting,
-  togglePaymentSetting
+  togglePaymentSetting,
+  addPackage,
+  updatePackage,
+  deletePackage,
+  getPackageList
 } = require('../controllers/adminController');
 const { uploadFields, handleUploadError } = require('../middleware/upload');
 
@@ -106,5 +110,19 @@ router.put('/payment/settings/:paymentMethod', updatePaymentSetting);
 
 // 启用/禁用支付方式
 router.patch('/payment/settings/:paymentMethod/toggle', togglePaymentSetting);
+
+// ==================== 套餐管理 ====================
+
+// 获取套餐列表
+router.get('/packages', getPackageList);
+
+// 添加套餐
+router.post('/packages', addPackage);
+
+// 更新套餐
+router.put('/packages/:packageId', updatePackage);
+
+// 删除套餐
+router.delete('/packages/:packageId', deletePackage);
 
 module.exports = router;

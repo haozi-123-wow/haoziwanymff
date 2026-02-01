@@ -1,4 +1,4 @@
-const { User, Setting, PlatformSetting, Domain, PaymentSetting, sequelize } = require('../models');
+const { User, Setting, PlatformSetting, Domain, PaymentSetting, Package, sequelize } = require('../models');
 const { sendTestEmail } = require('../utils/emailService');
 const { verifyValidateToken } = require('../utils/geetestService');
 const { getUploadedFiles } = require('../middleware/upload');
@@ -2440,6 +2440,278 @@ const togglePaymentSetting = async (req, res) => {
   }
 };
 
+/**
+ * 添加套餐
+ */
+const addPackage = async (req, res) => {
+  try {
+    const { domainId, name, description, parseCount, durationDays, price, originalPrice, isActive } = req.body;
+
+    // 参数验证
+    if (!domainId) {
+      return res.status(400).json({
+        code: 1001,
+        message: '域名ID不能为空',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (!name) {
+      return res.status(400).json({
+        code: 1001,
+        message: '套餐名称不能为空',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (parseCount === undefined || parseCount === null) {
+      return res.status(400).json({
+        code: 1001,
+        message: '解析次数不能为空',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (durationDays === undefined || durationDays === null) {
+      return res.status(400).json({
+        code: 1001,
+        message: '有效天数不能为空',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (price === undefined || price === null) {
+      return res.status(400).json({
+        code: 1001,
+        message: '价格不能为空',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 验证域名是否存在
+    const domain = await Domain.findByPk(domainId);
+    if (!domain) {
+      return res.status(404).json({
+        code: 1005,
+        message: '域名不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 创建套餐
+    const pkg = await Package.create({
+      domain_id: domainId,
+      name,
+      description: description || null,
+      parse_count: parseCount,
+      duration_days: durationDays,
+      price,
+      original_price: originalPrice || 0.00,
+      is_active: isActive !== undefined ? isActive : true
+    });
+
+    res.json({
+      code: 0,
+      message: '套餐添加成功',
+      data: {
+        id: pkg.id,
+        domainId: pkg.domain_id,
+        name: pkg.name,
+        description: pkg.description,
+        parseCount: pkg.parse_count,
+        durationDays: pkg.duration_days,
+        price: parseFloat(pkg.price),
+        originalPrice: parseFloat(pkg.original_price),
+        isActive: pkg.is_active,
+        createdAt: pkg.created_at
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('添加套餐错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 更新套餐
+ */
+const updatePackage = async (req, res) => {
+  try {
+    const { packageId } = req.params;
+    const { domainId, name, description, parseCount, durationDays, price, originalPrice, isActive } = req.body;
+
+    const pkg = await Package.findByPk(packageId);
+    if (!pkg) {
+      return res.status(404).json({
+        code: 1005,
+        message: '套餐不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 如果修改域名ID，验证域名是否存在
+    if (domainId !== undefined && domainId !== pkg.domain_id) {
+      const domain = await Domain.findByPk(domainId);
+      if (!domain) {
+        return res.status(404).json({
+          code: 1005,
+          message: '域名不存在',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+      pkg.domain_id = domainId;
+    }
+
+    // 更新其他字段
+    if (name !== undefined) pkg.name = name;
+    if (description !== undefined) pkg.description = description;
+    if (parseCount !== undefined) pkg.parse_count = parseCount;
+    if (durationDays !== undefined) pkg.duration_days = durationDays;
+    if (price !== undefined) pkg.price = price;
+    if (originalPrice !== undefined) pkg.original_price = originalPrice;
+    if (isActive !== undefined) pkg.is_active = isActive;
+
+    await pkg.save();
+
+    res.json({
+      code: 0,
+      message: '套餐更新成功',
+      data: {
+        id: pkg.id,
+        domainId: pkg.domain_id,
+        name: pkg.name,
+        description: pkg.description,
+        parseCount: pkg.parse_count,
+        durationDays: pkg.duration_days,
+        price: parseFloat(pkg.price),
+        originalPrice: parseFloat(pkg.original_price),
+        isActive: pkg.is_active,
+        updatedAt: pkg.updated_at
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('更新套餐错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 删除套餐
+ */
+const deletePackage = async (req, res) => {
+  try {
+    const { packageId } = req.params;
+
+    const pkg = await Package.findByPk(packageId);
+    if (!pkg) {
+      return res.status(404).json({
+        code: 1005,
+        message: '套餐不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    await pkg.destroy();
+
+    res.json({
+      code: 0,
+      message: '套餐删除成功',
+      data: null,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('删除套餐错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 获取套餐列表
+ */
+const getPackageList = async (req, res) => {
+  try {
+    const { domainId, page = 1, pageSize = 10 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(pageSize);
+
+    const where = {};
+    if (domainId) {
+      where.domain_id = domainId;
+    }
+
+    const { count, rows } = await Package.findAndCountAll({
+      where,
+      include: [{
+        model: Domain,
+        attributes: ['id', 'domain']
+      }],
+      limit: parseInt(pageSize),
+      offset: offset,
+      order: [['created_at', 'DESC']]
+    });
+
+    const list = rows.map(pkg => ({
+      id: pkg.id,
+      domainId: pkg.domain_id,
+      domainName: pkg.Domain?.domain || '',
+      name: pkg.name,
+      description: pkg.description,
+      parseCount: pkg.parse_count,
+      durationDays: pkg.duration_days,
+      price: parseFloat(pkg.price),
+      originalPrice: parseFloat(pkg.original_price),
+      isActive: pkg.is_active,
+      createdAt: pkg.created_at,
+      updatedAt: pkg.updated_at
+    }));
+
+    res.json({
+      code: 0,
+      message: 'success',
+      data: {
+        list,
+        total: count,
+        page: parseInt(page),
+        pageSize: parseInt(pageSize)
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('获取套餐列表错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
 module.exports = {
   getSettings,
   updateSettings,
@@ -2464,5 +2736,9 @@ module.exports = {
   getPaymentSettings,
   getPaymentSettingDetail,
   updatePaymentSetting,
-  togglePaymentSetting
+  togglePaymentSetting,
+  addPackage,
+  updatePackage,
+  deletePackage,
+  getPackageList
 };
