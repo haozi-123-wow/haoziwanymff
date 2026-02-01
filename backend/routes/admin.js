@@ -18,7 +18,12 @@ const {
   getDomainRecords,
   deleteDomainRecord,
   addDomainRecord,
-  modifyDomainRecord
+  modifyDomainRecord,
+  addPaymentSetting,
+  getPaymentSettings,
+  getPaymentSettingDetail,
+  updatePaymentSetting,
+  togglePaymentSetting
 } = require('../controllers/adminController');
 const { uploadFields, handleUploadError } = require('../middleware/upload');
 
@@ -84,5 +89,22 @@ router.put('/domains/:domainId/records/:recordId', modifyDomainRecord);
 
 // 删除域名解析记录
 router.delete('/domains/:domainId/records/:recordId', deleteDomainRecord);
+
+// ==================== 支付配置管理 ====================
+
+// 获取所有支付配置
+router.get('/payment/settings', getPaymentSettings);
+
+// 获取单个支付配置详情
+router.get('/payment/settings/:paymentMethod', getPaymentSettingDetail);
+
+// 添加支付配置
+router.post('/payment/settings', addPaymentSetting);
+
+// 更新支付配置
+router.put('/payment/settings/:paymentMethod', updatePaymentSetting);
+
+// 启用/禁用支付方式
+router.patch('/payment/settings/:paymentMethod/toggle', togglePaymentSetting);
 
 module.exports = router;

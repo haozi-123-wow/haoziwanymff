@@ -1899,9 +1899,128 @@ INSERT INTO payment_settings (payment_method, payment_name, config_data, is_enab
 
 ---
 
-### 14.3 支付配置管理接口
+### 14.3 支付配置管理接口 已完成（未测试）
 
-#### 14.3.1 获取所有支付配置
+#### 14.3.1 添加支付配置 
+
+
+添加新的支付方式配置。
+
+*   **接口地址**: `POST /api/v1/admin/payment/settings`
+*   **是否需要认证**: 是
+*   **所需权限**: admin
+*   **请求头 (Headers)**:
+    *   `Authorization: Bearer <token>`
+
+*   **请求参数 (Body)**:
+
+|| 参数名 | 类型 | 必填 | 描述 |
+|| :--- | :--- | :--- | :--- |
+|| paymentMethod | string | 是 | 支付方式(alipay/wechat/epay) |
+|| paymentName | string | 是 | 支付方式名称 |
+|| configData | object | 是 | 配置数据(JSON对象) |
+|| isEnabled | boolean | 否 | 是否启用,默认false |
+|| sortOrder | number | 否 | 排序顺序,默认0 |
+|| description | string | 否 | 配置描述 |
+
+*   **请求示例 (支付宝)**:
+```json
+POST /api/v1/admin/payment/settings
+{
+  "paymentMethod": "alipay",
+  "paymentName": "支付宝",
+  "configData": {
+    "appId": "2021xxxxxxxx",
+    "privateKey": "-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAwL...
+-----END RSA PRIVATE KEY-----",
+    "alipayPublicKey": "-----BEGIN PUBLIC KEY-----
+MIIBIjANBgk...
+-----END PUBLIC KEY-----",
+    "gatewayUrl": "https://openapi.alipay.com/gateway.do",
+    "notifyUrl": "https://yourdomain.com/api/v1/payments/callback/alipay",
+    "returnUrl": "https://yourdomain.com/payment/return"
+  },
+  "isEnabled": true,
+  "sortOrder": 1,
+  "description": "支付宝支付配置"
+}
+```
+
+*   **请求示例 (易支付)**:
+```json
+POST /api/v1/admin/payment/settings
+{
+  "paymentMethod": "epay",
+  "paymentName": "易支付",
+  "configData": {
+    "pid": "1000",
+    "key": "your_epay_key",
+    "apiUrl": "https://epay.example.com",
+    "notifyUrl": "https://yourdomain.com/api/v1/payments/callback/epay",
+    "returnUrl": "https://yourdomain.com/payment/return"
+  },
+  "isEnabled": false,
+  "sortOrder": 3,
+  "description": "易支付聚合支付配置"
+}
+```
+
+**注意事项**:
+- `paymentMethod` 必须唯一,不能重复添加相同的支付方式
+- 添加配置时必须提供所有必填字段
+- 敏感信息会自动加密存储
+
+*   **响应示例 (成功)**:
+```json
+{
+  "code": 0,
+  "message": "支付配置添加成功",
+  "data": {
+    "id": 1,
+    "paymentMethod": "alipay",
+    "paymentName": "支付宝",
+    "configData": {
+      "appId": "2021xxxxxxxx",
+      "privateKey": "***hidden***",
+      "alipayPublicKey": "***hidden***",
+      "gatewayUrl": "https://openapi.alipay.com/gateway.do",
+      "notifyUrl": "https://yourdomain.com/api/v1/payments/callback/alipay",
+      "returnUrl": "https://yourdomain.com/payment/return"
+    },
+    "isEnabled": true,
+    "sortOrder": 1,
+    "description": "支付宝支付配置",
+    "createdAt": "2024-01-24T10:00:00.000Z",
+    "updatedAt": "2024-01-24T10:00:00.000Z"
+  },
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 支付方式已存在)**:
+```json
+{
+  "code": 1004,
+  "message": "该支付方式已存在",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+*   **响应示例 (失败 - 配置验证失败)**:
+```json
+{
+  "code": 1002,
+  "message": "配置验证失败:appId不能为空",
+  "data": null,
+  "timestamp": 1698765432000
+}
+```
+
+---
+
+#### 14.3.2 获取所有支付配置
 
 获取系统中所有支付方式的配置列表。
 
@@ -1987,7 +2106,7 @@ GET /api/v1/admin/payment/settings
 - 敏感信息如私钥、API密钥等在返回时会被隐藏(显示为***hidden***)
 - 只有管理员可以查看完整配置
 
-#### 14.3.2 获取单个支付配置详情
+#### 14.3.3 获取单个支付配置详情
 
 获取指定支付方式的完整配置信息。
 
@@ -2049,7 +2168,7 @@ MIIBIjANBgk...
 }
 ```
 
-#### 14.3.3 更新支付配置
+#### 14.3.4 更新支付配置
 
 更新指定支付方式的配置信息。
 
@@ -2150,7 +2269,7 @@ PUT /api/v1/admin/payment/settings/epay
 }
 ```
 
-#### 14.3.4 启用/禁用支付方式
+#### 14.3.5 启用/禁用支付方式
 
 快速启用或禁用指定的支付方式。
 
@@ -2193,7 +2312,7 @@ PATCH /api/v1/admin/payment/settings/epay/toggle
 }
 ```
 
-#### 14.3.5 获取用户可用的支付方式
+#### 14.3.6 获取用户可用的支付方式
 
 获取普通用户在购买套餐时可用的支付方式列表。
 
@@ -2226,7 +2345,8 @@ GET /api/v1/payment/methods
         "paymentName": "易支付",
         "icon": "https://yourdomain.com/icons/epay.png",
         "description": "支持支付宝、微信、QQ支付",
-        "subMethods": ["alipay", "wechat", "qqpay"]
+        "subMethods": ["alipay", "wechat", "qqpay"],
+        "autoExpand": true
       }
     ]
   },
@@ -2234,12 +2354,17 @@ GET /api/v1/payment/methods
 }
 ```
 
+**重要说明**:
+- 易支付(epay)配置会返回`autoExpand: true`标识
+- 前端需要根据`autoExpand`字段判断是否展开支付方式
+- 展开后的支付方式调用时需要指定`paymentType`参数
+
 **注意事项**:
 - 只返回已启用(isEnabled=true)的支付方式
 - 不包含敏感配置信息
 - 可直接用于前端支付方式选择器
 
-#### 14.3.6 配置验证规则
+#### 14.3.7 配置验证规则
 
 **支付宝配置验证**:
 - appId: 必填,字符串格式
@@ -2264,7 +2389,7 @@ GET /api/v1/payment/methods
 - notifyUrl: 必填,合法的URL格式
 - returnUrl: 可选,合法的URL格式
 
-#### 14.3.7 安全注意事项
+#### 14.3.8 安全注意事项
 
 1. **敏感信息加密**:
    - 存储在数据库中的私钥、密钥等敏感信息应加密存储

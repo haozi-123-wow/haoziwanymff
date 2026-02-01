@@ -8,6 +8,7 @@ const PlatformSetting = require('./PlatformSetting');
 const Domain = require('./Domain');
 const UserDomain = require('./UserDomain');
 const Subdomain = require('./Subdomain');
+const PaymentSetting = require('./PaymentSetting');
 
 // 关联关系定义
 // PlatformSetting 和 Domain 是一对多关系
@@ -52,6 +53,7 @@ module.exports = {
   Domain,
   UserDomain,
   Subdomain,
+  PaymentSetting,
   sequelize,
   syncDatabase
 };

@@ -1,4 +1,4 @@
-const { User, Setting, PlatformSetting, Domain, sequelize } = require('../models');
+const { User, Setting, PlatformSetting, Domain, PaymentSetting, sequelize } = require('../models');
 const { sendTestEmail } = require('../utils/emailService');
 const { verifyValidateToken } = require('../utils/geetestService');
 const { getUploadedFiles } = require('../middleware/upload');
@@ -2027,6 +2027,419 @@ const modifyDomainRecord = async (req, res) => {
   }
 };
 
+/**
+ * 添加支付配置
+ */
+const addPaymentSetting = async (req, res) => {
+  try {
+    const { paymentMethod, paymentName, configData, isEnabled, sortOrder, description } = req.body;
+
+    // 参数验证
+    if (!paymentMethod) {
+      return res.status(400).json({
+        code: 1001,
+        message: '支付方式不能为空',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (!paymentName) {
+      return res.status(400).json({
+        code: 1001,
+        message: '支付方式名称不能为空',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    if (!configData || typeof configData !== 'object') {
+      return res.status(400).json({
+        code: 1001,
+        message: '配置数据不能为空且必须是有效的JSON对象',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 验证支付方式是否合法
+    const validMethods = ['alipay', 'wechat', 'epay'];
+    if (!validMethods.includes(paymentMethod)) {
+      return res.status(400).json({
+        code: 1001,
+        message: '支付方式必须是 alipay、wechat 或 epay 之一',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 检查支付方式是否已存在
+    const existingSetting = await PaymentSetting.findOne({
+      where: { payment_method: paymentMethod }
+    });
+
+    if (existingSetting) {
+      return res.status(400).json({
+        code: 1001,
+        message: `支付方式 ${paymentMethod} 的配置已存在，请勿重复添加`,
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 创建支付配置
+    const setting = await PaymentSetting.create({
+      payment_method: paymentMethod,
+      payment_name: paymentName,
+      config_data: configData,
+      is_enabled: isEnabled !== undefined ? isEnabled : false,
+      sort_order: sortOrder !== undefined ? sortOrder : 0,
+      description: description || null
+    });
+
+    // 处理敏感字段脱敏
+    const maskedConfigData = maskSensitiveData(configData);
+
+    res.json({
+      code: 0,
+      message: '支付配置添加成功',
+      data: {
+        id: setting.id,
+        paymentMethod: setting.payment_method,
+        paymentName: setting.payment_name,
+        configData: maskedConfigData,
+        isEnabled: setting.is_enabled,
+        sortOrder: setting.sort_order,
+        description: setting.description,
+        createdAt: setting.created_at,
+        updatedAt: setting.updated_at
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('添加支付配置错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 敏感数据脱敏处理
+ */
+const maskSensitiveData = (configData) => {
+  if (!configData || typeof configData !== 'object') {
+    return configData;
+  }
+
+  const sensitiveFields = ['privateKey', 'alipayPublicKey', 'key', 'appSecret', 'mchKey', 'apiKey'];
+  const maskedData = { ...configData };
+
+  for (const field of sensitiveFields) {
+    if (maskedData[field]) {
+      maskedData[field] = '***hidden***';
+    }
+  }
+
+  return maskedData;
+};
+
+/**
+ * 获取所有支付配置
+ */
+const getPaymentSettings = async (req, res) => {
+  try {
+    const { isEnabled, sortBy = 'sortOrder', sortOrder = 'asc' } = req.query;
+
+    // 构建查询条件
+    const whereCondition = {};
+    if (isEnabled !== undefined) {
+      whereCondition.is_enabled = isEnabled === 'true';
+    }
+
+    // 验证排序字段
+    const allowedSortFields = ['sortOrder', 'createdAt', 'updatedAt', 'paymentMethod'];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'sortOrder';
+    const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
+
+    // 映射排序字段
+    const sortFieldMap = {
+      'sortOrder': 'sort_order',
+      'createdAt': 'created_at',
+      'updatedAt': 'updated_at',
+      'paymentMethod': 'payment_method'
+    };
+    const dbSortField = sortFieldMap[sortField] || 'sort_order';
+
+    const settings = await PaymentSetting.findAll({
+      where: whereCondition,
+      order: [[dbSortField, sortDirection]]
+    });
+
+    // 处理响应数据，脱敏敏感信息
+    const list = settings.map(setting => {
+      const settingData = setting.toJSON();
+      return {
+        id: settingData.id,
+        paymentMethod: settingData.payment_method,
+        paymentName: settingData.payment_name,
+        configData: maskSensitiveData(settingData.config_data),
+        isEnabled: settingData.is_enabled,
+        sortOrder: settingData.sort_order,
+        description: settingData.description,
+        createdAt: settingData.created_at,
+        updatedAt: settingData.updated_at
+      };
+    });
+
+    res.json({
+      code: 0,
+      message: '获取成功',
+      data: {
+        total: list.length,
+        list: list
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('获取支付配置列表错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 获取单个支付配置详情
+ */
+const getPaymentSettingDetail = async (req, res) => {
+  try {
+    const { paymentMethod } = req.params;
+
+    // 验证支付方式是否合法
+    const validMethods = ['alipay', 'wechat', 'epay'];
+    if (!validMethods.includes(paymentMethod)) {
+      return res.status(400).json({
+        code: 1001,
+        message: '不支持的支付方式',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const setting = await PaymentSetting.findOne({
+      where: { payment_method: paymentMethod }
+    });
+
+    if (!setting) {
+      return res.status(404).json({
+        code: 1005,
+        message: '支付配置不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    const settingData = setting.toJSON();
+
+    res.json({
+      code: 0,
+      message: '获取成功',
+      data: {
+        id: settingData.id,
+        paymentMethod: settingData.payment_method,
+        paymentName: settingData.payment_name,
+        configData: settingData.config_data,
+        isEnabled: settingData.is_enabled,
+        sortOrder: settingData.sort_order,
+        description: settingData.description,
+        createdAt: settingData.created_at,
+        updatedAt: settingData.updated_at
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('获取支付配置详情错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 更新支付配置
+ */
+const updatePaymentSetting = async (req, res) => {
+  try {
+    const { paymentMethod } = req.params;
+    const { configData, isEnabled, sortOrder, description } = req.body;
+
+    // 验证支付方式是否合法
+    const validMethods = ['alipay', 'wechat', 'epay'];
+    if (!validMethods.includes(paymentMethod)) {
+      return res.status(400).json({
+        code: 1001,
+        message: '不支持的支付方式',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 查找支付配置
+    const setting = await PaymentSetting.findOne({
+      where: { payment_method: paymentMethod }
+    });
+
+    if (!setting) {
+      return res.status(404).json({
+        code: 1005,
+        message: '支付配置不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 验证是否至少提供一个字段
+    if (configData === undefined && isEnabled === undefined && sortOrder === undefined && description === undefined) {
+      return res.status(400).json({
+        code: 1001,
+        message: '请提供至少一个需要修改的字段',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 验证 configData
+    if (configData !== undefined) {
+      if (!configData || typeof configData !== 'object') {
+        return res.status(400).json({
+          code: 1001,
+          message: '配置数据必须是有效的JSON对象',
+          data: null,
+          timestamp: Date.now()
+        });
+      }
+      setting.config_data = configData;
+    }
+
+    // 更新其他字段
+    if (isEnabled !== undefined) {
+      setting.is_enabled = isEnabled;
+    }
+    if (sortOrder !== undefined) {
+      setting.sort_order = sortOrder;
+    }
+    if (description !== undefined) {
+      setting.description = description;
+    }
+
+    await setting.save();
+
+    const settingData = setting.toJSON();
+
+    res.json({
+      code: 0,
+      message: '更新成功',
+      data: {
+        id: settingData.id,
+        paymentMethod: settingData.payment_method,
+        paymentName: settingData.payment_name,
+        configData: maskSensitiveData(settingData.config_data),
+        isEnabled: settingData.is_enabled,
+        sortOrder: settingData.sort_order,
+        description: settingData.description,
+        createdAt: settingData.created_at,
+        updatedAt: settingData.updated_at
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('更新支付配置错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
+/**
+ * 启用/禁用支付方式
+ */
+const togglePaymentSetting = async (req, res) => {
+  try {
+    const { paymentMethod } = req.params;
+    const { isEnabled } = req.body;
+
+    // 验证支付方式是否合法
+    const validMethods = ['alipay', 'wechat', 'epay'];
+    if (!validMethods.includes(paymentMethod)) {
+      return res.status(400).json({
+        code: 1001,
+        message: '不支持的支付方式',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 验证 isEnabled 参数
+    if (isEnabled === undefined || typeof isEnabled !== 'boolean') {
+      return res.status(400).json({
+        code: 1001,
+        message: 'isEnabled 参数必须是布尔值',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 查找支付配置
+    const setting = await PaymentSetting.findOne({
+      where: { payment_method: paymentMethod }
+    });
+
+    if (!setting) {
+      return res.status(404).json({
+        code: 1005,
+        message: '支付配置不存在',
+        data: null,
+        timestamp: Date.now()
+      });
+    }
+
+    // 更新启用状态
+    setting.is_enabled = isEnabled;
+    await setting.save();
+
+    res.json({
+      code: 0,
+      message: isEnabled ? '支付方式已启用' : '支付方式已禁用',
+      data: {
+        paymentMethod: setting.payment_method,
+        isEnabled: setting.is_enabled
+      },
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('切换支付方式状态错误:', error);
+    res.status(500).json({
+      code: 5000,
+      message: error.message || '服务器内部错误',
+      data: null,
+      timestamp: Date.now()
+    });
+  }
+};
+
 module.exports = {
   getSettings,
   updateSettings,
@@ -2046,5 +2459,10 @@ module.exports = {
   getDomainRecords,
   deleteDomainRecord,
   addDomainRecord,
-  modifyDomainRecord
+  modifyDomainRecord,
+  addPaymentSetting,
+  getPaymentSettings,
+  getPaymentSettingDetail,
+  updatePaymentSetting,
+  togglePaymentSetting
 };
