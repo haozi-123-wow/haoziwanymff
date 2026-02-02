@@ -6,6 +6,7 @@ const captchaRoutes = require('./captcha');
 const userRoutes = require('./user');
 const adminRoutes = require('./admin');
 const domainRoutes = require('./domain');
+const orderRoutes = require('./order');
 
 const router = express.Router();
 
@@ -23,5 +24,8 @@ router.use('/admin', authenticateToken, requireAdmin, adminRoutes);
 
 // 域名相关路由（需要认证）
 router.use('/domains', authenticateToken, domainRoutes);
+
+// 订单相关路由（需要认证）
+router.use('/api/v1', orderRoutes);
 
 module.exports = router;

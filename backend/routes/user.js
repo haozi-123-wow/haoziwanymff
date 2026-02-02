@@ -1,5 +1,6 @@
 const express = require('express');
 const { getMe, updateEmail, updateProfile } = require('../controllers/authController');
+const { checkUserPackageStatus } = require('../controllers/packageController');
 
 const router = express.Router();
 
@@ -11,5 +12,8 @@ router.patch('/email', updateEmail);
 
 // 更改用户资料
 router.patch('/profile', updateProfile);
+
+// 检查用户套餐状态
+router.get('/packages/check', checkUserPackageStatus);
 
 module.exports = router;
